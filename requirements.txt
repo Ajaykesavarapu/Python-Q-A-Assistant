@@ -1,0 +1,1 @@
+-r python-qa-assistant/requirements.txt
