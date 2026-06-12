@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv/
+env/
+venv/
+chroma_db/
+data/raw/*
+!data/raw/.gitkeep
+.pytest_cache/
+.coverage
+htmlcov/
+*.ipynb_checkpoints/

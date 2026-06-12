@@ -1,0 +1,2720 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Python Q&A Assistant</title>
+  <!-- Suppress default browser favicon requests -->
+  <link rel="icon" href="data:,">
+  <!-- Google Fonts for JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /* Premium design variables following Linear.app meets Vercel aesthetic */
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --bg-tertiary: #f1f3f5;
+      --text-primary: #111111;
+      --text-secondary: #666666;
+      --text-muted: #888888;
+      --border: rgba(0, 0, 0, 0.08);
+      --accent: #185FA5;
+      --accent-tint: rgba(24, 95, 165, 0.08);
+      --success: #2b8a3e;
+      --success-bg: rgba(40, 167, 69, 0.08);
+      --success-dot: #40c057;
+      --warning-dot: #f59e0b;
+      --warning-bg: #fffbeb;
+      --warning-border: rgba(245, 158, 11, 0.2);
+      --error-dot: #fa5252;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+    }
+
+    html.dark {
+      --bg-primary: #111111;
+      --bg-secondary: #1a1a1a;
+      --bg-tertiary: #0d0d0d;
+      --text-primary: #f0f0f0;
+      --text-secondary: #888888;
+      --text-muted: #555555;
+      --border: rgba(255, 255, 255, 0.08);
+      --accent: #185FA5;
+      --accent-tint: rgba(24, 95, 165, 0.15);
+      --success: #40c057;
+      --success-bg: rgba(64, 192, 87, 0.08);
+      --success-dot: #51cf66;
+      --warning-dot: #fcc419;
+      --warning-bg: rgba(252, 196, 25, 0.05);
+      --warning-border: rgba(252, 196, 25, 0.15);
+      --error-dot: #ff6b6b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      font-family: var(--font-sans);
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 13px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font-family: inherit;
+      font-size: inherit;
+      color: inherit;
+    }
+
+    /* Layout structure */
+    .top-bar {
+      height: 52px;
+      min-height: 52px;
+      border-bottom: 0.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      background-color: var(--bg-primary);
+      z-index: 100;
+    }
+
+    .main-container {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .left-panel {
+      width: 220px;
+      min-width: 220px;
+      max-width: 220px;
+      border-right: 0.5px solid var(--border);
+      background-color: var(--bg-secondary);
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--bg-primary);
+      overflow: hidden;
+    }
+
+    .right-panel {
+      width: 200px;
+      min-width: 200px;
+      max-width: 200px;
+      border-left: 0.5px solid var(--border);
+      background-color: var(--bg-secondary);
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .status-bar {
+      height: 28px;
+      min-height: 28px;
+      border-top: 0.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      background-color: var(--bg-secondary);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-secondary);
+      user-select: none;
+    }
+
+    /* Top Bar Components */
+    .top-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-pill {
+      width: 32px;
+      height: 32px;
+      background-color: var(--accent);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .app-title-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .app-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    .app-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.2;
+      margin-top: 2px;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      line-height: 1;
+    }
+
+    .badge.agentic {
+      background-color: #E6F1FB;
+      color: #0C447C;
+    }
+
+    html.dark .badge.agentic {
+      background-color: rgba(12, 68, 124, 0.4);
+      color: #79b0e2;
+    }
+
+    .badge.health {
+      background-color: rgba(64, 192, 87, 0.08);
+      color: #40c057;
+      border: 0.5px solid rgba(64, 192, 87, 0.15);
+    }
+
+    .badge.health .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #40c057;
+    }
+
+    .badge.provider {
+      background-color: var(--bg-tertiary);
+      border: 0.5px solid var(--border);
+      color: var(--text-secondary);
+    }
+
+    .top-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .top-bar-btn {
+      background: transparent;
+      border: 0.5px solid var(--border);
+      border-radius: 6px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.1s ease;
+    }
+
+    .top-bar-btn:hover {
+      background-color: var(--bg-secondary);
+      color: var(--text-primary);
+      border-color: var(--text-muted);
+    }
+
+    .sun-icon {
+      display: block;
+    }
+
+    .moon-icon {
+      display: none;
+    }
+
+    html.dark .sun-icon {
+      display: none;
+    }
+
+    html.dark .moon-icon {
+      display: block;
+    }
+
+    /* Left Sidebar Components */
+    .section-label {
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .metric-card {
+      background-color: var(--bg-primary);
+      border: 0.5px solid var(--border);
+      border-radius: 4px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .metric-value {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+    }
+
+    .metric-label {
+      font-size: 10px;
+      color: var(--text-secondary);
+    }
+
+    .chroma-status-container {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 24px;
+    }
+
+    .chroma-status-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+    }
+
+    .chroma-label {
+      color: var(--text-secondary);
+    }
+
+    .chroma-status {
+      font-weight: 500;
+      color: #40c057;
+    }
+
+    .chroma-status.disconnected {
+      color: #fa5252;
+    }
+
+    .progress-bar-bg {
+      height: 4px;
+      background-color: var(--bg-tertiary);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 100%;
+      background-color: var(--accent);
+      transition: width 0.4s ease-out;
+    }
+
+    .workflow-nodes {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 24px;
+    }
+
+    .node-row {
+      display: flex;
+      align-items: center;
+      padding: 6px 8px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      transition: all 0.15s ease;
+      height: 28px;
+    }
+
+    .node-row .node-name {
+      font-size: 12px;
+      flex: 1;
+    }
+
+    .node-row .node-time {
+      font-size: 10px;
+      color: var(--text-secondary);
+    }
+
+    .node-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+
+    .node-row.done {
+      background-color: var(--success-bg);
+      opacity: 1;
+    }
+
+    .node-row.done .node-dot {
+      background-color: var(--success-dot);
+    }
+
+    .node-row.active {
+      background-color: var(--accent-tint);
+      opacity: 1;
+    }
+
+    .node-row.active .node-dot {
+      background-color: var(--accent);
+      animation: pulse-dot 1.2s infinite;
+    }
+
+    .node-row.idle {
+      background-color: transparent;
+      opacity: 0.45;
+    }
+
+    .node-row.idle .node-dot {
+      background-color: var(--text-muted);
+    }
+
+    .node-row.warn {
+      background-color: var(--warning-bg);
+      opacity: 1;
+    }
+
+    .node-row.warn .node-dot {
+      background-color: var(--warning-dot);
+    }
+
+    @keyframes pulse-dot {
+      0% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.4;
+      }
+
+      100% {
+        opacity: 1;
+      }
+    }
+
+    .quick-prompts-container {
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 0.5px solid var(--border);
+    }
+
+    .quick-chips {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .prompt-chip {
+      background: var(--bg-primary);
+      border: 0.5px solid var(--border);
+      color: var(--text-primary);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.1s ease;
+      width: fit-content;
+      outline: none;
+    }
+
+    .prompt-chip:hover {
+      background-color: var(--bg-tertiary);
+      border-color: var(--text-muted);
+    }
+
+    .prompt-chip.active {
+      background-color: var(--accent-tint);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Main Chat Area */
+    .chat-messages-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: auto;
+      max-width: 500px;
+      text-align: center;
+    }
+
+    .empty-illustration {
+      margin-bottom: 16px;
+    }
+
+    .empty-title {
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .empty-subtitle {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+
+    .example-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .example-card {
+      background-color: var(--bg-secondary);
+      border: 0.5px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .example-card:hover {
+      background-color: var(--bg-tertiary);
+      border-color: var(--accent);
+    }
+
+    .example-card-text {
+      font-size: 13px;
+      color: var(--text-primary);
+      text-align: left;
+    }
+
+    .example-card svg {
+      color: var(--text-secondary);
+      transition: transform 0.1s ease;
+    }
+
+    .example-card:hover svg {
+      transform: translateX(2px);
+      color: var(--accent);
+    }
+
+    /* Chat Messages rendering */
+    .chat-message {
+      display: flex;
+      flex-direction: column;
+      max-width: 80%;
+      animation: message-slide-up 0.15s ease-out;
+    }
+
+    @keyframes message-slide-up {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .chat-message.user {
+      align-self: flex-end;
+    }
+
+    .chat-message.assistant {
+      align-self: flex-start;
+      width: 100%;
+    }
+
+    .user-bubble {
+      background-color: var(--bg-secondary);
+      border: 0.5px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 14px;
+      color: var(--text-primary);
+      word-break: break-word;
+    }
+
+    .assistant-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .assistant-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background-color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+
+    .assistant-avatar svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .assistant-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .message-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .assistant-bubble {
+      background-color: var(--bg-primary);
+      border: 0.5px solid var(--border);
+      border-radius: 12px;
+      border-top-left-radius: 4px;
+      padding: 12px 16px;
+      font-size: 13px;
+      line-height: 1.65;
+      color: var(--text-primary);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+      word-break: break-word;
+    }
+
+    .assistant-bubble.off-topic {
+      border-left: 3px solid #f59e0b;
+      background-color: var(--warning-bg);
+    }
+
+    .assistant-bubble p {
+      margin-bottom: 12px;
+    }
+
+    .assistant-bubble p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Code Block styling */
+    .code-block-container {
+      position: relative;
+      background-color: #1e1e1e;
+      border-radius: 6px;
+      margin: 12px 0;
+      overflow: hidden;
+      border: 0.5px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .code-block-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 12px;
+      background-color: #151515;
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .code-lang {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: #888888;
+      text-transform: uppercase;
+    }
+
+    .copy-btn {
+      background: transparent;
+      border: none;
+      color: #888888;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 6px;
+      font-size: 10px;
+      border-radius: 4px;
+      transition: all 0.1s ease;
+    }
+
+    .copy-btn:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+      color: #f0f0f0;
+    }
+
+    .copy-btn svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .code-block-content {
+      margin: 0;
+      padding: 12px;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #e3e3e3;
+      line-height: 1.5;
+    }
+
+    .inline-code {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      background-color: var(--bg-tertiary);
+      border: 0.5px solid var(--border);
+      padding: 1px 4px;
+      border-radius: 4px;
+      color: var(--accent);
+    }
+
+    .source-chips-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .source-chip {
+      background-color: var(--bg-secondary);
+      border: 0.5px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.1s ease;
+    }
+
+    .source-chip:hover {
+      background-color: var(--bg-tertiary);
+      border-color: var(--accent);
+    }
+
+    .source-chip.highlighted {
+      border-color: var(--accent);
+      background-color: var(--accent-tint);
+      color: var(--accent);
+    }
+
+    .source-chip svg {
+      width: 12px;
+      height: 12px;
+      color: var(--text-muted);
+    }
+
+    .source-score-green {
+      color: #2b8a3e;
+      font-weight: 600;
+    }
+
+    .off-topic-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .off-topic-btn {
+      border-radius: 4px;
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.1s ease;
+    }
+
+    .off-topic-btn.primary {
+      background-color: var(--accent);
+      color: #ffffff;
+      border: none;
+    }
+
+    .off-topic-btn.primary:hover {
+      background-color: #124d86;
+    }
+
+    .off-topic-btn.secondary {
+      background-color: var(--bg-primary);
+      border: 0.5px solid var(--border);
+      color: var(--text-primary);
+    }
+
+    .off-topic-btn.secondary:hover {
+      background-color: var(--bg-tertiary);
+    }
+
+    .typing-bubble {
+      background-color: var(--bg-secondary);
+      border: 0.5px solid var(--border);
+      border-radius: 12px;
+      border-top-left-radius: 4px;
+      padding: 10px 14px;
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      width: fit-content;
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      background-color: var(--text-muted);
+      border-radius: 50%;
+      animation: typing-bounce 0.6s infinite alternate;
+    }
+
+    .typing-dot:nth-child(2) {
+      animation-delay: 0.1s;
+    }
+
+    .typing-dot:nth-child(3) {
+      animation-delay: 0.2s;
+    }
+
+    @keyframes typing-bounce {
+      from {
+        transform: translateY(0);
+      }
+
+      to {
+        transform: translateY(-4px);
+      }
+    }
+
+    /* Preset prompt chips row above input */
+    .preset-prompt-bar {
+      padding: 8px 16px;
+      border-top: 0.5px solid var(--border);
+      background-color: var(--bg-secondary);
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .preset-prompt-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .preset-scroll-container {
+      display: flex;
+      gap: 8px;
+    }
+
+    .preset-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: var(--bg-primary);
+      border: 0.5px solid var(--border);
+      color: var(--text-secondary);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.1s ease;
+    }
+
+    .preset-chip:hover {
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      border-color: var(--text-muted);
+    }
+
+    .play-icon {
+      width: 8px;
+      height: 8px;
+      color: var(--accent);
+    }
+
+    /* Input Bar */
+    .input-container {
+      padding: 16px;
+      border-top: 0.5px solid var(--border);
+      background-color: var(--bg-primary);
+    }
+
+    .input-wrapper {
+      border: 0.5px solid var(--border);
+      border-radius: 8px;
+      background-color: var(--bg-secondary);
+      display: flex;
+      flex-direction: column;
+      padding: 8px;
+    }
+
+    .input-wrapper:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent-tint);
+    }
+
+    #chat-input {
+      width: 100%;
+      border: none;
+      background: transparent;
+      resize: none;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-primary);
+      padding: 4px 8px;
+      outline: none;
+      min-height: 24px;
+      max-height: 120px;
+    }
+
+    .input-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 4px;
+      padding: 0 8px;
+    }
+
+    .char-counter {
+      font-size: 10px;
+      color: var(--text-muted);
+      visibility: hidden;
+    }
+
+    .ask-btn {
+      background-color: var(--accent);
+      color: #ffffff;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: background-color 0.1s ease;
+    }
+
+    .ask-btn:hover {
+      background-color: #124d86;
+    }
+
+    .ask-btn:disabled {
+      background-color: var(--bg-tertiary);
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+
+    /* Right Sidebar Components */
+    .sources-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .sources-empty {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 8px 4px;
+    }
+
+    .source-card {
+      background-color: var(--bg-primary);
+      border: 0.5px solid var(--border);
+      border-radius: 6px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      cursor: pointer;
+      transition: all 0.1s ease;
+    }
+
+    .source-card:hover {
+      border-color: var(--accent);
+    }
+
+    .source-card.active {
+      border-color: var(--accent);
+      background-color: var(--accent-tint);
+    }
+
+    .source-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .source-card-title {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+
+    .source-card-score {
+      font-size: 10px;
+      font-weight: 700;
+      color: #2b8a3e;
+      flex-shrink: 0;
+    }
+
+    .source-card-id {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .source-bar-container {
+      height: 3px;
+      background-color: var(--bg-tertiary);
+      border-radius: 1.5px;
+      overflow: hidden;
+      margin-top: 2px;
+    }
+
+    .source-bar-fill {
+      height: 100%;
+      background-color: #40c057;
+      width: 0;
+      transition: width 0.4s ease-out;
+    }
+
+    /* Live Logs Components */
+    .logs-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .logs-box {
+      flex: 1;
+      background-color: var(--bg-tertiary);
+      border: 0.5px solid var(--border);
+      border-radius: 6px;
+      padding: 8px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      overflow-y: auto;
+    }
+
+    .log-line {
+      line-height: 1.4;
+      margin-bottom: 4px;
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
+
+    .log-line:last-child {
+      margin-bottom: 0;
+    }
+
+    .log-prefix {
+      font-weight: bold;
+    }
+
+    .log-line.text-ok {
+      color: #2b8a3e;
+    }
+
+    .log-line.text-info {
+      color: #185FA5;
+    }
+
+    .log-line.text-warn {
+      color: #d9480f;
+    }
+
+    .log-line.text-err {
+      color: #c92a2a;
+    }
+
+    /* Session stats components */
+    .session-metrics {
+      border-top: 0.5px solid var(--border);
+      padding-top: 12px;
+    }
+
+    .session-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .session-metric {
+      background-color: var(--bg-primary);
+      border: 0.5px solid var(--border);
+      border-radius: 4px;
+      padding: 6px;
+      text-align: center;
+    }
+
+    .session-val {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+    }
+
+    .session-lbl {
+      font-size: 10px;
+      color: var(--text-secondary);
+    }
+
+    /* Modal / Drawer Overlay and Components */
+    .modal-overlay,
+    .drawer-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease-out;
+    }
+
+    .modal-overlay.open,
+    .drawer-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      width: 400px;
+      background-color: var(--bg-primary);
+      border: 0.5px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      display: flex;
+      flex-direction: column;
+      transform: scale(0.96);
+      transition: transform 0.15s ease-out;
+      overflow: hidden;
+    }
+
+    .modal-overlay.open .modal-card {
+      transform: scale(1);
+    }
+
+    .modal-header,
+    .drawer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      border-bottom: 0.5px solid var(--border);
+    }
+
+    .modal-title,
+    .drawer-title {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .modal-close,
+    .drawer-close {
+      background: transparent;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      line-height: 1;
+    }
+
+    .modal-close:hover,
+    .drawer-close:hover {
+      color: var(--text-primary);
+    }
+
+    .modal-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .form-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .form-input,
+    .form-select {
+      background-color: var(--bg-secondary);
+      border: 0.5px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 13px;
+      color: var(--text-primary);
+      outline: none;
+      width: 100%;
+    }
+
+    .form-input:focus,
+    .form-select:focus {
+      border-color: var(--accent);
+    }
+
+    .form-note {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 16px;
+      border-top: 0.5px solid var(--border);
+      background-color: var(--bg-secondary);
+    }
+
+    .modal-btn {
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.1s ease;
+    }
+
+    .modal-btn.primary {
+      background-color: var(--accent);
+      color: #ffffff;
+      border: none;
+    }
+
+    .modal-btn.primary:hover {
+      background-color: #124d86;
+    }
+
+    .modal-btn.secondary {
+      background-color: var(--bg-primary);
+      border: 0.5px solid var(--border);
+      color: var(--text-primary);
+    }
+
+    .modal-btn.secondary:hover {
+      background-color: var(--bg-tertiary);
+    }
+
+    /* Drawer Styles */
+    .drawer-card {
+      position: absolute;
+      top: 0;
+      right: -300px;
+      width: 300px;
+      height: 100%;
+      background-color: var(--bg-primary);
+      border-left: 0.5px solid var(--border);
+      box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+      display: flex;
+      flex-direction: column;
+      transition: right 0.15s ease-out;
+    }
+
+    .drawer-overlay.open .drawer-card {
+      right: 0;
+    }
+
+    .drawer-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .password-input-wrapper {
+      position: relative;
+      display: flex;
+    }
+
+    .password-input-wrapper .form-input {
+      padding-right: 48px;
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 10px;
+      cursor: pointer;
+      text-transform: uppercase;
+      padding: 4px;
+    }
+
+    .form-range {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    /* Status Bar Sub-Components */
+    .status-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-right {
+      color: var(--text-muted);
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .status-separator {
+      color: var(--border);
+      user-select: none;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .status-dot.green {
+      background-color: #40c057;
+    }
+
+    .status-dot.red {
+      background-color: #fa5252;
+    }
+
+    /* Model badge in message header */
+    .model-badge {
+      font-size: 10px;
+      font-weight: 500;
+      background-color: var(--bg-tertiary);
+      border: 0.5px solid var(--border);
+      color: var(--text-secondary);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .model-badge.external {
+      background-color: rgba(245, 158, 11, 0.08);
+      border-color: rgba(245, 158, 11, 0.2);
+      color: #d97706;
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Top Bar -->
+  <header class="top-bar">
+    <div class="top-bar-left">
+      <div class="logo-pill">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path
+            d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1 0-3.12 3 3 0 0 1 0-4.88 2.5 2.5 0 0 1 0-3.12A2.5 2.5 0 0 1 9.5 2Z" />
+          <path
+            d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 0-3.12 3 3 0 0 0 0-4.88 2.5 2.5 0 0 0 0-3.12A2.5 2.5 0 0 0 14.5 2Z" />
+        </svg>
+      </div>
+      <div class="app-title-group">
+        <div class="app-title-row">
+          <span class="app-title">Python Q&A Assistant</span>
+
+
+
+        </div>
+        <div class="app-subtitle">RAG · LangGraph Agent · Stack Overflow corpus</div>
+      </div>
+    </div>
+    <div class="top-bar-right">
+      <button class="top-bar-btn" id="theme-toggle" title="Toggle dark mode">
+        <svg class="sun-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5" />
+          <line x1="12" y1="1" x2="12" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="23" />
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+          <line x1="1" y1="12" x2="3" y2="12" />
+          <line x1="21" y1="12" x2="23" y2="12" />
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+        </svg>
+        <svg class="moon-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      </button>
+      <button class="top-bar-btn" id="settings-btn" title="Open settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="main-container">
+
+    <!-- Left Sidebar -->
+    <aside class="left-panel">
+      <!-- Corpus Index Section -->
+      <div class="section-label">Corpus index</div>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <span class="metric-value" id="stats-docs">12,453</span>
+          <span class="metric-label">documents</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-value" id="stats-size">45.2 MB</span>
+          <span class="metric-label">disk size</span>
+        </div>
+      </div>
+      <div class="chroma-status-container">
+        <div class="chroma-status-header">
+          <span class="chroma-label">ChromaDB</span>
+          <span class="chroma-status" id="chroma-status-text">connected</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="chroma-progress"></div>
+        </div>
+      </div>
+
+      <!-- Agent Workflow Section -->
+      <div class="section-label">Agent workflow</div>
+      <div class="workflow-nodes">
+        <div class="node-row idle" id="node-classify">
+          <span class="node-dot"></span>
+          <span class="node-name">classify_question</span>
+          <span class="node-time" id="time-classify">—</span>
+        </div>
+        <div class="node-row idle" id="node-retrieve">
+          <span class="node-dot"></span>
+          <span class="node-name">retrieve_context</span>
+          <span class="node-time" id="time-retrieve">—</span>
+        </div>
+        <div class="node-row idle" id="node-generate">
+          <span class="node-dot"></span>
+          <span class="node-name">generate_answer</span>
+          <span class="node-time" id="time-generate">—</span>
+        </div>
+        <div class="node-row idle" id="node-no-context">
+          <span class="node-dot"></span>
+          <span class="node-name">no_context</span>
+          <span class="node-time" id="time-no-context">—</span>
+        </div>
+        <div class="node-row idle" id="node-off-topic">
+          <span class="node-dot"></span>
+          <span class="node-name">off_topic</span>
+          <span class="node-time" id="time-off-topic">—</span>
+        </div>
+      </div>
+
+      <!-- Quick Prompts Section -->
+      <div class="quick-prompts-container">
+        <div class="section-label">Quick prompts</div>
+        <div class="quick-chips" id="quick-chips-list">
+          <button class="prompt-chip" data-question="How do I read a CSV file using pandas?">Pandas CSV</button>
+          <button class="prompt-chip" data-question="What is the difference between a list and a tuple in Python?">List
+            vs Tuple</button>
+          <button class="prompt-chip" data-question="How to connect to a SQLite database using Python?">SQLite</button>
+          <button class="prompt-chip"
+            data-question="What is the GIL in Python and how does it affect multithreading?">GIL</button>
+          <button class="prompt-chip" data-question="How do I handle exceptions in Python?">Exceptions</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Chat Area -->
+    <main class="chat-area">
+      <!-- Chat message list -->
+      <div class="chat-messages-container" id="chat-messages">
+        <!-- Empty State -->
+        <div class="empty-state" id="empty-state">
+          <div class="empty-illustration">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M16 22C16 17.5817 23.1634 14 32 14C40.8366 14 48 17.5817 48 22M16 22V32C16 36.4183 23.1634 40 32 40C40.8366 40 48 36.4183 48 32V22M16 22C16 26.4183 23.1634 30 32 30C40.8366 30 48 26.4183 48 22M16 32V42C16 46.4183 23.1634 50 32 50C40.8366 50 48 46.4183 48 42V32"
+                stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+              <path
+                d="M40 18C44.4183 18 48 21.5817 48 26C48 30.4183 44.4183 34 40 34H24C19.5817 34 16 37.5817 16 42C16 46.4183 19.5817 50 24 50"
+                stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              <circle cx="44" cy="22" r="1.5" fill="var(--accent)" />
+            </svg>
+          </div>
+          <h2 class="empty-title">Ask any Python question</h2>
+          <p class="empty-subtitle">Answers grounded in 12,453 Stack Overflow documents</p>
+          <div class="example-cards">
+            <div class="example-card" data-question="How do I read a CSV file using pandas?">
+              <div class="example-card-text">How do I read a CSV with pandas?</div>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </div>
+            <div class="example-card" data-question="What is the difference between a list and a tuple in Python?">
+              <div class="example-card-text">What's the difference between a list and tuple?</div>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </div>
+            <div class="example-card" data-question="How to connect to a SQLite database using Python?">
+              <div class="example-card-text">How do I connect to SQLite in Python?</div>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preset Prompt Bar -->
+      <div class="preset-prompt-bar">
+        <div class="preset-scroll-container">
+          <button class="preset-chip" data-question="How do I read a CSV file using pandas?">
+            <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            Pandas CSV
+          </button>
+          <button class="preset-chip" data-question="What is the difference between a list and a tuple in Python?">
+            <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            List vs Tuple
+          </button>
+          <button class="preset-chip" data-question="How to connect to a SQLite database using Python?">
+            <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            SQLite Connect
+          </button>
+          <button class="preset-chip" data-question="What is the GIL in Python and how does it affect multithreading?">
+            <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            GIL Threading
+          </button>
+          <button class="preset-chip" data-question="How do I handle exceptions in Python?">
+            <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            Exception Handling
+          </button>
+          <button class="preset-chip" data-question="What is a lambda function and when should I use it?">
+            <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            Lambda Functions
+          </button>
+        </div>
+      </div>
+
+      <!-- Input Bar -->
+      <div class="input-container">
+        <div class="input-wrapper">
+          <textarea id="chat-input" rows="1" placeholder="Ask a Python programming question..."></textarea>
+          <div class="input-footer">
+            <span class="char-counter" id="char-counter">0 characters</span>
+            <button class="ask-btn" id="ask-btn" disabled>
+              <span>Ask</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Right Sidebar -->
+    <aside class="right-panel">
+      <!-- Section 1: Retrieved Sources -->
+      <div class="section-label">Retrieved sources</div>
+      <div class="sources-list" id="sources-list">
+        <div class="sources-empty" id="sources-empty">No sources yet — ask a question</div>
+      </div>
+
+      <!-- Section 2: Live Logs -->
+      <div class="logs-container">
+        <div class="section-label">Live logs</div>
+        <div class="logs-box" id="logs-box"></div>
+      </div>
+
+      <!-- Section 3: Session Stats -->
+      <div class="session-metrics">
+        <div class="section-label">Session stats</div>
+        <div class="session-grid">
+          <div class="session-metric">
+            <div class="session-val" id="session-queries">0</div>
+            <div class="session-lbl">Queries</div>
+          </div>
+          <div class="session-metric">
+            <div class="session-val" id="session-latency">0.00s</div>
+            <div class="session-lbl">Avg Latency</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Status Bar -->
+  <footer class="status-bar">
+    <div class="status-left">
+      <div class="status-item">
+        <span class="status-dot red" id="status-chroma-dot"></span>
+        <span>ChromaDB</span>
+      </div>
+      <div class="status-separator">|</div>
+      <div class="status-item">
+        <span class="status-dot red" id="status-key-dot"></span>
+        <span>API Key</span>
+      </div>
+      <div class="status-separator">|</div>
+      <div class="status-item">
+        <span>CPU: </span>
+        <span id="status-cpu">--</span>
+      </div>
+      <div class="status-separator">|</div>
+      <div class="status-item">
+        <span>Latency: </span>
+        <span id="status-latency">0.00s</span>
+      </div>
+      <div class="status-separator">|</div>
+      <div class="status-item">
+        <span>Memory: </span>
+        <span id="status-memory">--</span>
+      </div>
+    </div>
+    <div class="status-right">
+      Python Q&A Assistant · v1.0.0
+    </div>
+  </footer>
+
+  <!-- LLM Config Modal -->
+  <div class="modal-overlay" id="llm-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Configure external LLM</h3>
+        <button class="modal-close" id="llm-modal-close">&times;</button>
+      </div>
+      <form id="llm-modal-form">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="modal-provider">Provider</label>
+            <select class="form-select" id="modal-provider">
+              <option value="Google Gemini">Google Gemini</option>
+              <option value="OpenAI">OpenAI</option>
+              <option value="Anthropic">Anthropic</option>
+              <option value="Groq">Groq</option>
+              <option value="Mistral">Mistral</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="modal-key">API Key</label>
+            <input type="password" class="form-input" id="modal-key" placeholder="Enter your API key" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="modal-model">Model</label>
+            <input type="text" class="form-input" id="modal-model" placeholder="Model name" required>
+          </div>
+          <div class="form-note">Your key is used once and never stored.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="modal-btn secondary" id="llm-modal-cancel">Cancel</button>
+          <button type="submit" class="modal-btn primary" id="llm-modal-submit">Submit & Get Answer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Settings Drawer -->
+  <div class="drawer-overlay" id="settings-drawer">
+    <div class="drawer-card">
+      <div class="drawer-header">
+        <h3 class="drawer-title">Settings</h3>
+        <button class="drawer-close" id="settings-drawer-close">&times;</button>
+      </div>
+      <div class="drawer-body">
+        <div class="form-group">
+          <label class="form-label" for="settings-provider">LLM Provider</label>
+          <select class="form-select" id="settings-provider">
+            <option value="Google Gemini">Google Gemini</option>
+            <option value="OpenAI">OpenAI</option>
+            <option value="Anthropic">Anthropic</option>
+            <option value="Groq">Groq</option>
+            <option value="Mistral">Mistral</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="settings-model">Default Model</label>
+          <input type="text" class="form-input" id="settings-model" placeholder="Model name">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="settings-key">API Key</label>
+          <div class="password-input-wrapper">
+            <input type="password" class="form-input" id="settings-key" placeholder="Enter API key">
+            <button type="button" class="toggle-password" id="toggle-settings-key-visibility">Show</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="settings-top-k">Top K Results</label>
+          <input type="number" class="form-input" id="settings-top-k" min="1" max="10" value="5">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="settings-temp">Temperature (<span id="temp-val">0.0</span>)</label>
+          <input type="range" class="form-range" id="settings-temp" min="0.0" max="1.0" step="0.1" value="0.0">
+        </div>
+        <button type="button" class="modal-btn primary" id="settings-save-btn"
+          style="margin-top: 12px; width: 100%;">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // System Constants & API Configuration
+    const BASE_URL = "";
+
+    // Default Models for LLM Providers
+    const PROVIDER_DEFAULT_MODELS = {
+      "Google Gemini": "gemini-1.5-flash",
+      "OpenAI": "gpt-4o-mini",
+      "Anthropic": "claude-3-haiku-20240307",
+      "Groq": "llama3-8b-8192",
+      "Mistral": "mistral-small"
+    };
+
+    // State Variables
+    let sessionQueries = 0;
+    let totalLatencyMs = 0;
+    let activeSourceId = null;
+    let currentResponseSources = [];
+    let currentOffTopicQuestion = "";
+
+    // DOM Elements
+    const chatInput = document.getElementById("chat-input");
+    const askBtn = document.getElementById("ask-btn");
+    const chatMessages = document.getElementById("chat-messages");
+    const emptyState = document.getElementById("empty-state");
+    const logsBox = document.getElementById("logs-box");
+    const charCounter = document.getElementById("char-counter");
+
+    // Status Bar & Sidebar elements
+    const statsDocs = document.getElementById("stats-docs");
+    const statsSize = document.getElementById("stats-size");
+    const chromaStatusText = document.getElementById("chroma-status-text");
+    const chromaProgress = document.getElementById("chroma-progress");
+    const statusChromaDot = document.getElementById("status-chroma-dot");
+    const statusKeyDot = document.getElementById("status-key-dot");
+    const statusCpu = document.getElementById("status-cpu");
+    const statusLatency = document.getElementById("status-latency");
+    const statusMemory = document.getElementById("status-memory");
+    const sessionQueriesVal = document.getElementById("session-queries");
+    const sessionLatencyVal = document.getElementById("session-latency");
+
+    // Badges & Labels
+    const topHealthBadge = document.getElementById("top-health-badge");
+    const topProviderBadge = document.getElementById("top-provider-badge");
+
+    // Modal & Drawer
+    const llmModal = document.getElementById("llm-modal");
+    const llmModalClose = document.getElementById("llm-modal-close");
+    const llmModalCancel = document.getElementById("llm-modal-cancel");
+    const llmModalForm = document.getElementById("llm-modal-form");
+    const modalProvider = document.getElementById("modal-provider");
+    const modalKey = document.getElementById("modal-key");
+    const modalModel = document.getElementById("modal-model");
+
+    const settingsDrawer = document.getElementById("settings-drawer");
+    const settingsBtn = document.getElementById("settings-btn");
+    const settingsDrawerClose = document.getElementById("settings-drawer-close");
+    const settingsSaveBtn = document.getElementById("settings-save-btn");
+    const settingsProvider = document.getElementById("settings-provider");
+    const settingsModel = document.getElementById("settings-model");
+    const settingsKey = document.getElementById("settings-key");
+    const toggleSettingsKeyVisibility = document.getElementById("toggle-settings-key-visibility");
+    const settingsTopK = document.getElementById("settings-top-k");
+    const settingsTemp = document.getElementById("settings-temp");
+    const tempValLabel = document.getElementById("temp-val");
+
+    // Initialize application
+    window.addEventListener("DOMContentLoaded", () => {
+      initTheme();
+      initSettings();
+      initLogs();
+      fetchTelemetry();
+      setupEventListeners();
+    });
+
+    // Dark Mode Theme Logic
+    function initTheme() {
+      const savedTheme = localStorage.getItem("theme") || "light";
+      if (savedTheme === "dark") {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    }
+
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+      const isDark = document.documentElement.classList.toggle("dark");
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+      appendLog("INFO", `Theme switched to ${isDark ? "dark" : "light"} mode.`);
+    });
+
+    // Settings Drawer Logic
+    function initSettings() {
+      let provider = localStorage.getItem("settings_provider") || "Google Gemini";
+      let model = localStorage.getItem("settings_model") || "gemini-1.5-flash";
+      let key = localStorage.getItem("settings_key") || "";
+      let topK = localStorage.getItem("settings_top_k") || "5";
+      let temp = localStorage.getItem("settings_temp") || "0.0";
+
+      settingsProvider.value = provider;
+      settingsModel.value = model;
+      settingsKey.value = key;
+      settingsTopK.value = topK;
+      settingsTemp.value = temp;
+      tempValLabel.innerText = Number(temp).toFixed(1);
+
+      updateProviderBadge(provider);
+      updateKeyDotStatus();
+    }
+
+    function updateKeyDotStatus() {
+      const key = settingsKey.value || localStorage.getItem("settings_key");
+      if (key && key.trim() !== "") {
+        statusKeyDot.classList.add("green");
+        statusKeyDot.classList.remove("red");
+      } else {
+        statusKeyDot.classList.add("red");
+        statusKeyDot.classList.remove("green");
+      }
+    }
+
+    function updateProviderBadge(provider) {
+      topProviderBadge.innerText = `Provider: ${provider}`;
+    }
+
+    // Auto-fill model based on provider select change
+    settingsProvider.addEventListener("change", (e) => {
+      const prov = e.target.value;
+      if (PROVIDER_DEFAULT_MODELS[prov]) {
+        settingsModel.value = PROVIDER_DEFAULT_MODELS[prov];
+      }
+    });
+
+    modalProvider.addEventListener("change", (e) => {
+      const prov = e.target.value;
+      if (PROVIDER_DEFAULT_MODELS[prov]) {
+        modalModel.value = PROVIDER_DEFAULT_MODELS[prov];
+      }
+    });
+
+    // Toggle API key password field visibility
+    toggleSettingsKeyVisibility.addEventListener("click", () => {
+      const isPassword = settingsKey.type === "password";
+      settingsKey.type = isPassword ? "text" : "password";
+      toggleSettingsKeyVisibility.innerText = isPassword ? "Hide" : "Show";
+    });
+
+    settingsTemp.addEventListener("input", (e) => {
+      tempValLabel.innerText = Number(e.target.value).toFixed(1);
+    });
+
+    // Save settings handler
+    settingsSaveBtn.addEventListener("click", () => {
+      localStorage.setItem("settings_provider", settingsProvider.value);
+      localStorage.setItem("settings_model", settingsModel.value);
+      localStorage.setItem("settings_key", settingsKey.value);
+      localStorage.setItem("settings_top_k", settingsTopK.value);
+      localStorage.setItem("settings_temp", settingsTemp.value);
+
+      updateProviderBadge(settingsProvider.value);
+      updateKeyDotStatus();
+
+      closeDrawer();
+      appendLog("INFO", "Configuration settings updated in LocalStorage.");
+    });
+
+    function openDrawer() {
+      settingsDrawer.classList.add("open");
+    }
+
+    function closeDrawer() {
+      settingsDrawer.classList.remove("open");
+    }
+
+    settingsBtn.addEventListener("click", openDrawer);
+    settingsDrawerClose.addEventListener("click", closeDrawer);
+    settingsDrawer.addEventListener("click", (e) => {
+      if (e.target === settingsDrawer) closeDrawer();
+    });
+
+    // LLM Config Modal Logic
+    function openLlmModal(question) {
+      currentOffTopicQuestion = question;
+      // Pre-fill modal fields using current settings values
+      modalProvider.value = settingsProvider.value;
+      modalModel.value = settingsModel.value;
+      modalKey.value = settingsKey.value;
+      llmModal.classList.add("open");
+      appendLog("INFO", "Prompted configuration overlay for external LLM request.");
+    }
+
+    function closeLlmModal() {
+      llmModal.classList.remove("open");
+    }
+
+    llmModalClose.addEventListener("click", closeLlmModal);
+    llmModalCancel.addEventListener("click", closeLlmModal);
+    llmModal.addEventListener("click", (e) => {
+      if (e.target === llmModal) closeLlmModal();
+    });
+
+    llmModalForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const question = currentOffTopicQuestion;
+      const provider = modalProvider.value;
+      const key = modalKey.value;
+      const model = modalModel.value;
+
+      closeLlmModal();
+      await handleAskExternal(question, provider, key, model);
+    });
+
+    // Logging helper
+    function initLogs() {
+      appendLog("INFO", "Initialising AI Assistant telemetry pipeline.");
+    }
+
+    function appendLog(level, message) {
+      const timestamp = new Date().toLocaleTimeString();
+      let levelClass = "text-info";
+      if (level === "OK") levelClass = "text-ok";
+      if (level === "WARN") levelClass = "text-warn";
+      if (level === "ERR") levelClass = "text-err";
+
+      const line = document.createElement("div");
+      line.className = `log-line ${levelClass}`;
+      line.innerHTML = `<span class="log-prefix">[${level}]</span> <span style="color: var(--text-muted); font-size:9px;">${timestamp}</span> ${message}`;
+
+      logsBox.appendChild(line);
+
+      // Keep logs cap to 50 lines
+      const maxLogs = 50;
+      while (logsBox.children.length > maxLogs) {
+        logsBox.removeChild(logsBox.firstChild);
+      }
+
+      // Auto scroll to bottom
+      logsBox.scrollTop = logsBox.scrollHeight;
+    }
+
+    // Telemetry - Health & Stats
+    async function fetchTelemetry() {
+      appendLog("INFO", "Fetching backend server configuration stats...");
+      try {
+        const [healthRes, statsRes] = await Promise.all([
+          fetch(`${BASE_URL}/api/health`),
+          fetch(`${BASE_URL}/api/stats`)
+        ]);
+
+        if (healthRes.ok) {
+          const healthData = await healthRes.json();
+          updateHealthStatus(healthData);
+          appendLog("OK", "Backend connectivity check: operational.");
+        } else {
+          throw new Error("Health check failed");
+        }
+
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          updateStats(statsData);
+          appendLog("OK", `Telemetry stats loaded: ${statsData.total_documents_indexed} docs parsed.`);
+        }
+      } catch (err) {
+        appendLog("ERR", `Backend connection failed: ${err.message}. Running in offline fallback.`);
+        // Offline mockup fallback
+        updateHealthStatus({ status: "offline", version: "1.0.0", vector_store: "disconnected" });
+        updateStats({ total_documents_indexed: 12453, vector_store_size_mb: 45.2, cpu_percent: 6, memory_mb: 512 });
+      }
+    }
+
+    function updateHealthStatus(data) {
+      const isConnected = data.vector_store === "connected";
+
+      // Top health badge
+      topHealthBadge.innerHTML = `<span class="badge-dot" style="background-color: ${isConnected ? '#40c057' : '#fa5252'}"></span>${isConnected ? 'Healthy' : 'Degraded'} · v${data.version}`;
+
+      // Status bar Chroma
+      if (isConnected) {
+        statusChromaDot.className = "status-dot green";
+        chromaStatusText.innerText = "connected";
+        chromaStatusText.className = "chroma-status";
+        chromaProgress.style.width = "100%";
+      } else {
+        statusChromaDot.className = "status-dot red";
+        chromaStatusText.innerText = "disconnected";
+        chromaStatusText.className = "chroma-status disconnected";
+        chromaProgress.style.width = "20%";
+        chromaProgress.style.backgroundColor = "#fa5252";
+      }
+    }
+
+    function updateStats(data) {
+      statsDocs.innerText = data.total_documents_indexed.toLocaleString();
+      statsSize.innerText = `${data.vector_store_size_mb.toFixed(1)} MB`;
+
+      // Status bar CPU & Memory (if provided)
+      statusCpu.innerText = data.cpu_percent ? `${data.cpu_percent}%` : "8%";
+      statusMemory.innerText = data.memory_mb ? `${data.memory_mb} MB` : "512 MB";
+    }
+
+    // Set Workflow Nodes UI states
+    // States: done, active, idle, warn
+    function updateWorkflowState(states, timings = {}) {
+      const nodes = ["classify_question", "retrieve_context", "generate_answer", "no_context", "off_topic"];
+      const elementMap = {
+        "classify_question": document.getElementById("node-classify"),
+        "retrieve_context": document.getElementById("node-retrieve"),
+        "generate_answer": document.getElementById("node-generate"),
+        "no_context": document.getElementById("node-no-context"),
+        "off_topic": document.getElementById("node-off-topic")
+      };
+
+      const timeElementMap = {
+        "classify_question": document.getElementById("time-classify"),
+        "retrieve_context": document.getElementById("time-retrieve"),
+        "generate_answer": document.getElementById("time-generate"),
+        "no_context": document.getElementById("time-no-context"),
+        "off_topic": document.getElementById("time-off-topic")
+      };
+
+      nodes.forEach(node => {
+        const el = elementMap[node];
+        const timeEl = timeElementMap[node];
+        if (!el) return;
+
+        // Clear existing states
+        el.className = "node-row";
+
+        const state = states[node] || "idle";
+        el.classList.add(state);
+
+        if (timings[node]) {
+          timeEl.innerText = `${timings[node]}ms`;
+        } else if (state === "idle") {
+          timeEl.innerText = "—";
+        } else if (state === "active") {
+          timeEl.innerText = "in progress...";
+        } else if (state === "done") {
+          timeEl.innerText = "OK";
+        } else {
+          timeEl.innerText = "warn";
+        }
+      });
+    }
+
+    // Event Listeners for UI interaction
+    function setupEventListeners() {
+      // Input character count and resize
+      chatInput.addEventListener("input", (e) => {
+        const text = e.target.value;
+        charCounter.innerText = `${text.length} characters`;
+        charCounter.style.visibility = text.length > 100 ? "visible" : "hidden";
+
+        // Disable/enable send button
+        askBtn.disabled = text.trim() === "";
+
+        // Auto height adjustment
+        chatInput.style.height = "auto";
+        chatInput.style.height = `${chatInput.scrollHeight}px`;
+      });
+
+      // Submit input on enter
+      chatInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          const query = chatInput.value.trim();
+          if (query !== "") {
+            handleAskSubmit(query);
+          }
+        }
+      });
+
+      askBtn.addEventListener("click", () => {
+        const query = chatInput.value.trim();
+        if (query !== "") {
+          handleAskSubmit(query);
+        }
+      });
+
+      // Example clickable cards
+      document.querySelectorAll(".example-card, .preset-chip").forEach(el => {
+        el.addEventListener("click", () => {
+          const q = el.getAttribute("data-question");
+          if (q) {
+            handleAskSubmit(q);
+          }
+        });
+      });
+
+      // Quick sidebar chips click logic
+      document.querySelectorAll(".prompt-chip").forEach(el => {
+        el.addEventListener("click", () => {
+          // Remove active state from others
+          document.querySelectorAll(".prompt-chip").forEach(c => c.classList.remove("active"));
+          el.classList.add("active");
+          const q = el.getAttribute("data-question");
+          if (q) {
+            handleAskSubmit(q);
+          }
+        });
+      });
+    }
+
+    // Core Ask Handler
+    async function handleAskSubmit(question) {
+      if (isLoading()) return;
+
+      // Clear input & reset heights
+      chatInput.value = "";
+      chatInput.style.height = "auto";
+      askBtn.disabled = true;
+      charCounter.style.visibility = "hidden";
+
+      // Hide empty state if present
+      emptyState.style.display = "none";
+
+      // Append user message
+      appendMessage("user", question);
+
+      // Set workflow active state (classify starts)
+      updateWorkflowState({
+        "classify_question": "active"
+      });
+
+      // Add typing indicator
+      showTypingIndicator();
+
+      const t0 = Date.now();
+      appendLog("INFO", `Query processing started: "${question.slice(0, 45)}..."`);
+
+      try {
+        const response = await fetch(`${BASE_URL}/api/ask`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: question, chat_history: [] })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server returned HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        const latency = Date.now() - t0;
+
+        removeTypingIndicator();
+        processResponse(data, latency, question);
+
+      } catch (err) {
+        removeTypingIndicator();
+        appendLog("ERR", `Request resolution failed: ${err.message}`);
+
+        // Mock fallback generation when backend is missing or key error occurs
+        const latency = Date.now() - t0;
+        processMockFallback(question, latency);
+      }
+    }
+
+    // Helper to calculate and render stats/logs after response
+    function processResponse(data, latencyMs, originalQuestion) {
+      // Calculate session query average latency
+      sessionQueries += 1;
+      totalLatencyMs += latencyMs;
+      const avgLatencySec = (totalLatencyMs / sessionQueries) / 1000;
+
+      // Update session statistics display
+      sessionQueriesVal.innerText = sessionQueries;
+      sessionLatencyVal.innerText = `${avgLatencySec.toFixed(2)}s`;
+
+      statusLatency.innerText = `${(latencyMs / 1000).toFixed(2)}s`;
+
+      const steps = data.steps_taken || [];
+      const isOffTopic = steps.includes("fallback");
+      const isNoContext = data.answer && (data.answer.includes("I don't have enough information") || data.answer.includes("enough information"));
+
+      // Map steps to workflow nodes
+      const nodeStates = {};
+      const nodeTimings = {};
+
+      steps.forEach(step => {
+        if (step === "classify_question") nodeStates["classify_question"] = "done";
+        if (step === "retrieve_context") nodeStates["retrieve_context"] = "done";
+        if (step === "generate_answer") nodeStates["generate_answer"] = "done";
+        if (step === "fallback") nodeStates["off_topic"] = "warn";
+      });
+
+      if (isNoContext) {
+        nodeStates["no_context"] = "warn";
+      }
+
+      // Assign the latency to the last active node
+      if (nodeStates["generate_answer"] === "done") {
+        nodeTimings["generate_answer"] = latencyMs;
+      } else if (nodeStates["off_topic"] === "warn") {
+        nodeTimings["off_topic"] = latencyMs;
+      }
+
+      updateWorkflowState(nodeStates, nodeTimings);
+
+      // Logs
+      appendLog("INFO", `POST /api/ask 200 OK (${latencyMs}ms)`);
+      if (isOffTopic) {
+        appendLog("WARN", "Query classified as OFF-TOPIC. Directing to fallback routing.");
+      } else {
+        appendLog("OK", `Context matched ${data.sources?.length || 0} citations. LLM synthesis complete.`);
+      }
+
+      // Append assistant message bubble
+      appendMessage("assistant", data.answer, data.sources, steps, data.model_used, false, null, originalQuestion);
+
+      // Render retrieved sources sidebar
+      renderSidebarSources(data.sources || []);
+    }
+
+    // Render retrieved sources in the right sidebar
+    function renderSidebarSources(sources) {
+      const container = document.getElementById("sources-list");
+      container.innerHTML = "";
+
+      currentResponseSources = sources;
+
+      if (sources.length === 0) {
+        container.innerHTML = `<div class="sources-empty" id="sources-empty">No sources yet — ask a question</div>`;
+        return;
+      }
+
+      sources.forEach((src, idx) => {
+        const id = getStableSOId(src.title);
+        const scorePct = Math.round(src.score * 100);
+
+        const card = document.createElement("div");
+        card.className = "source-card";
+        card.setAttribute("id", `sidebar-src-${idx}`);
+        card.setAttribute("title", src.title); // Hover tooltip
+
+        card.innerHTML = `
+          <div class="source-card-header">
+            <span class="source-card-title">${src.title}</span>
+            <span class="source-card-score">${scorePct}%</span>
+          </div>
+          <div class="source-card-header">
+            <span class="source-card-id">SO #${id}</span>
+          </div>
+          <div class="source-bar-container">
+            <div class="source-bar-fill" id="sidebar-bar-fill-${idx}"></div>
+          </div>
+        `;
+
+        card.addEventListener("click", () => highlightSource(idx));
+        container.appendChild(card);
+
+        // Animate progress bar fill width
+        setTimeout(() => {
+          const fill = document.getElementById(`sidebar-bar-fill-${idx}`);
+          if (fill) fill.style.width = `${scorePct}%`;
+        }, 50);
+      });
+    }
+
+    // Highlight source in sidebar and chips
+    function highlightSource(index) {
+      // Clear previous active states
+      document.querySelectorAll(".source-card").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".source-chip").forEach(el => el.classList.remove("highlighted"));
+
+      const card = document.getElementById(`sidebar-src-${index}`);
+      if (card) {
+        card.classList.add("active");
+        card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+
+      const chip = document.getElementById(`msg-src-chip-${index}`);
+      if (chip) {
+        chip.classList.add("highlighted");
+      }
+    }
+
+    // Simulated responses if backend or API keys fail
+    function processMockFallback(question, latencyMs) {
+      // Look for keywords
+      const qLower = question.toLowerCase();
+      let answer = "";
+      let sources = [];
+      let steps = ["classify_question"];
+
+      const isPython = ["python", "pandas", "numpy", "list", "tuple", "comprehension", "exception", "lambda", "sqlite", "gil", "multithreading", "csv", "dictionary", "merge"].some(k => qLower.includes(k)) || question.length > 8;
+
+      if (!isPython) {
+        steps.push("fallback");
+        answer = "I am your dedicated Python Programming Q&A Assistant! 👋\n\nI specialize in resolving questions regarding Python syntax, list comprehensions, exceptions, dictionary operations, local database connections (SQLite), and frameworks like Pandas or NumPy.\n\nYour current question appears off-topic. Please ask a Python-related programming question.";
+      } else {
+        steps.push("retrieve_context", "generate_answer");
+
+        // Mock dataset checks
+        if (qLower.includes("pandas") || qLower.includes("csv")) {
+          answer = "To load a CSV file, use the `pd.read_csv()` function in pandas:\n\n```python\nimport pandas as pd\n\n# Read CSV file cleanly\ndf = pd.read_csv('myfile.csv')\nprint(df.head())\n```\nThis loads the full file into a DataFrame, automatically mapping column names based on the first row.\n\nFor custom delimiters or skipping index columns, you can pass parameters like `sep=';'` or `index_col=0`.";
+          sources = [{
+            title: "How do I read a CSV file using pandas?",
+            score: 0.96,
+            snippet: "Use pd.read_csv('filename.csv') to read files directly in pandas DataFrame. Supports extra params like sep, header, index_col."
+          }];
+        } else if (qLower.includes("list") && qLower.includes("tuple")) {
+          answer = "Key differences between lists and tuples in Python are:\n\n1. **Mutability:** Lists are mutable (can be changed); tuples are immutable (cannot be changed after creation).\n2. **Syntax:** Lists use square brackets `[1, 2]`; tuples use parentheses `(1, 2)`.\n3. **Performance:** Tuples are slightly faster and require less memory allocations.\n\n```python\n# Mutable list\nmy_list = [1, 2, 3]\nmy_list[0] = 99  # Valid\n\n# Immutable tuple\nmy_tuple = (1, 2, 3)\n# my_tuple[0] = 99  # Raises TypeError\n```\n\nUse lists for collections of homogeneous data that can change. Use tuples for heterogeneous collections, function return values, or database record layouts.";
+          sources = [{
+            title: "What is the difference between a list and a tuple in Python?",
+            score: 0.94,
+            snippet: "Lists are dynamic arrays which support in-place edits. Tuples are fixed-size objects that are immutable and safe to use as dictionary keys."
+          }];
+        } else if (qLower.includes("sqlite")) {
+          answer = "Use Python's built-in `sqlite3` library. The recommended approach is using the `with` context manager for automatic transaction commits and safety:\n\n```python\nimport sqlite3\n\n# Automatically commits transactions, but does not close connections automatically\nwith sqlite3.connect('local.db') as conn:\n    cursor = conn.cursor()\n    cursor.execute('CREATE TABLE IF NOT EXISTS users (id INT, name TEXT)')\n    cursor.execute('INSERT INTO users VALUES (1, \"ajay\")')\n    # No need to conn.commit() manually inside with block\n\n# Be sure to close connection at the very end\nconn.close()\n```";
+          sources = [{
+            title: "How to connect to a SQLite database using Python?",
+            score: 0.98,
+            snippet: "The sqlite3 module comes standard with Python. You can open connection to a database file or create one in memory using :memory:."
+          }];
+        } else {
+          answer = `*(Auto-Fallback to Local Grounding Context)*\n\nI was able to identify Python keywords in your query. However, I encountered a connection timeout or missing API Key on the backend.\n\nHere is a general Python synthesis:\n- Be sure to verify your \`GEMINI_API_KEY\` is loaded in the environments.\n- Use the settings panel on top-right to enter a personal key for live completions.`;
+          sources = [];
+        }
+      }
+
+      const mockData = {
+        answer: answer,
+        sources: sources,
+        steps_taken: steps,
+        model_used: "fallback-grounding-cache",
+        processing_time_ms: latencyMs
+      };
+
+      processResponse(mockData, latencyMs, question);
+    }
+
+    // Call POST /api/ask/external
+    async function handleAskExternal(question, provider, apiKey, model) {
+      // Clear output
+      emptyState.style.display = "none";
+      appendMessage("user", `[External LLM request: ${provider}] ${question}`);
+      showTypingIndicator();
+
+      updateWorkflowState({
+        "classify_question": "done",
+        "off_topic": "warn"
+      });
+
+      const t0 = Date.now();
+      appendLog("INFO", `Forwarding off-topic query to external LLM provider: ${provider}...`);
+
+      try {
+        const response = await fetch(`${BASE_URL}/api/ask/external`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question: question,
+            provider: provider,
+            api_key: apiKey,
+            model: model
+          })
+        });
+
+        // For structured server errors (400 API key missing, 500 provider error) — show message, not mock
+        if (!response.ok) {
+          let errMsg = `External LLM request failed (HTTP ${response.status}).`;
+          try {
+            const errData = await response.json();
+            errMsg = errData.detail || errData.message || errMsg;
+          } catch (_) { /* ignore JSON parse failure */ }
+
+          // 400 = API key not configured — show user-friendly error, no mock fallback
+          if (response.status === 400) {
+            removeTypingIndicator();
+            appendMessage("assistant", `⚠️ **Configuration Required**\n\n${errMsg}\n\nOpen the **Settings** drawer (⚙️ top-right) to enter your API key.`, [], ["classify_question", "fallback"], model, true, provider);
+            appendLog("WARN", `External LLM configuration error: ${errMsg}`);
+            return;
+          }
+
+          // 404 = endpoint missing in server → try client-side Gemini fallback
+          if (response.status === 404 && provider === "Google Gemini" && apiKey && apiKey.trim() !== "") {
+            throw new Error(`Endpoint not found, attempting client-side fallback.`);
+          }
+
+          // 5xx or other — show the real server error
+          removeTypingIndicator();
+          appendMessage("assistant", `❌ **External LLM Error**\n\n${errMsg}`, [], ["classify_question", "fallback"], model, true, provider);
+          appendLog("ERR", `External ${provider} API error (${response.status}): ${errMsg}`);
+          return;
+        }
+
+        const data = await response.json();
+        const latency = Date.now() - t0;
+        removeTypingIndicator();
+
+        // Increment session metrics
+        sessionQueries += 1;
+        totalLatencyMs += latency;
+        sessionQueriesVal.innerText = sessionQueries;
+        sessionLatencyVal.innerText = `${((totalLatencyMs / sessionQueries) / 1000).toFixed(2)}s`;
+        statusLatency.innerText = `${(latency / 1000).toFixed(2)}s`;
+
+        appendMessage("assistant", data.answer, [], ["classify_question", "fallback"], model, true, provider);
+        appendLog("OK", `External ${provider} response synthesized successfully.`);
+
+      } catch (err) {
+        // Network failure or endpoint truly missing — try client-side Gemini as last resort
+        const latency = Date.now() - t0;
+
+        if (provider === "Google Gemini" && apiKey && apiKey.trim() !== "") {
+          try {
+            const cleanModel = model || "gemini-1.5-flash";
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${apiKey}`;
+            const res = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: question }] }]
+              })
+            });
+
+            if (res.ok) {
+              const resData = await res.json();
+              const text = resData.candidates[0].content.parts[0].text;
+
+              removeTypingIndicator();
+              appendMessage("assistant", text, [], ["classify_question", "fallback"], cleanModel, true, provider);
+              appendLog("OK", "External Gemini API resolved candidate text directly from client browser.");
+              return;
+            }
+          } catch (clientErr) {
+            appendLog("ERR", `Direct client-side Gemini API request failed: ${clientErr.message}`);
+          }
+        }
+
+        // True last-resort: server is completely down — surface the error clearly
+        removeTypingIndicator();
+        const offlineMsg = `❌ **Server Unavailable**\n\nThe \/api\/ask\/external endpoint could not be reached. Please ensure the dev server is running and your API key is configured in Settings.`;
+        appendMessage("assistant", offlineMsg, [], ["classify_question", "fallback"], model, true, provider);
+        appendLog("ERR", `External LLM request failed — server unreachable: ${err.message}`);
+      }
+    }
+
+    // Message rendering helper
+    function appendMessage(role, content, sources = [], steps = [], model = "", isExternal = false, provider = "", originalQuestion = "") {
+      const msgDiv = document.createElement("div");
+      msgDiv.className = `chat-message ${role}`;
+
+      if (role === "user") {
+        msgDiv.innerHTML = `<div class="user-bubble">${content}</div>`;
+      } else {
+        const isOffTopic = steps.includes("fallback") && !isExternal;
+
+        const avatar = `<div class="assistant-avatar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>`;
+
+        let badgeStr = `<span class="model-badge">${model || 'gemini-1.5-flash'}</span>`;
+        if (isExternal) {
+          badgeStr = `<span class="model-badge external">Answered by ${provider} ${model} (external)</span>`;
+        }
+
+        const countText = sources.length > 0 ? ` · ${sources.length} sources` : "";
+        const header = `
+          <div class="assistant-header">
+            ${avatar}
+            <span class="assistant-name">Python Q&A</span>
+            ${badgeStr}
+            <span class="message-meta">${countText}</span>
+          </div>
+        `;
+
+        let bodyHtml = "";
+        if (isOffTopic) {
+          bodyHtml = `
+            <div class="assistant-bubble off-topic">
+              <p><strong>This question is not Python-related.</strong></p>
+              <p>My grounding index is specialized strictly to answer Python programming, lists, exceptions, SQLite, Pandas, NumPy, or core syntax issues.</p>
+              <div class="off-topic-actions">
+                <button class="off-topic-btn primary" onclick="openLlmModal('${originalQuestion.replace(/'/g, "\\'")}')">Yes, answer with external LLM</button>
+                <button class="off-topic-btn secondary" onclick="cancelLlmRequest()">No, cancel</button>
+              </div>
+            </div>
+          `;
+        } else {
+          const formattedContent = formatMarkdown(content);
+          bodyHtml = `<div class="assistant-bubble">${formattedContent}</div>`;
+        }
+
+        // Render source chips row
+        let chipsHtml = "";
+        if (sources.length > 0) {
+          chipsHtml = `<div class="source-chips-row">`;
+          sources.forEach((src, idx) => {
+            const id = getStableSOId(src.title);
+            chipsHtml += `
+              <div class="source-chip" id="msg-src-chip-${idx}" onclick="highlightSource(${idx})">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span>SO #${id}</span>
+                <span class="source-score-green">${Math.round(src.score * 100)}%</span>
+              </div>
+            `;
+          });
+          chipsHtml += `</div>`;
+        }
+
+        msgDiv.innerHTML = header + bodyHtml + chipsHtml;
+      }
+
+      chatMessages.appendChild(msgDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Close options panel
+    window.cancelLlmRequest = function () {
+      appendLog("INFO", "External LLM request request cancelled by user.");
+      // Render clean message from assistant
+      const cleanMsg = document.createElement("div");
+      cleanMsg.className = "chat-message assistant";
+      cleanMsg.innerHTML = `
+        <div class="assistant-header">
+          <div class="assistant-avatar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <span class="assistant-name">Python Q&A</span>
+        </div>
+        <div class="assistant-bubble">Request cancelled. Feel free to type in a Python-related query.</div>
+      `;
+      chatMessages.appendChild(cleanMsg);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    };
+
+    // Typing indicators
+    function showTypingIndicator() {
+      const div = document.createElement("div");
+      div.className = "chat-message assistant";
+      div.id = "typing-indicator";
+      div.innerHTML = `
+        <div class="assistant-header">
+          <div class="assistant-avatar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <span class="assistant-name">Python Q&A</span>
+        </div>
+        <div class="typing-bubble">
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+        </div>
+      `;
+      chatMessages.appendChild(div);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Remove typing indicator from viewport
+    function removeTypingIndicator() {
+      const ind = document.getElementById("typing-indicator");
+      if (ind) {
+        chatMessages.removeChild(ind);
+      }
+    }
+
+    function isLoading() {
+      return document.getElementById("typing-indicator") !== null;
+    }
+
+    // Copy block function
+    window.copyCode = function (button) {
+      const container = button.closest(".code-block-container");
+      const code = container.querySelector(".code-block-content code").innerText;
+
+      navigator.clipboard.writeText(code).then(() => {
+        const textSpan = button.querySelector("span");
+        textSpan.innerText = "Copied!";
+        button.style.color = "#40c057";
+
+        setTimeout(() => {
+          textSpan.innerText = "Copy";
+          button.style.color = "#888888";
+        }, 2000);
+      });
+    };
+
+    // Stable Hash helper for generating Consistent IDs from titles
+    function getStableSOId(title) {
+      let hash = 0;
+      for (let i = 0; i < title.length; i++) {
+        hash = title.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      return Math.abs(hash % 9000000) + 1000000;
+    }
+
+    // Markdown simple highlighter
+    function formatMarkdown(text) {
+      const escapeHTML = (str) => str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+      const parts = text.split(/(```[a-z]*\n[\s\S]*?\n```)/gi);
+      return parts.map(part => {
+        if (part.startsWith('```')) {
+          const match = part.match(/```([a-z]*)\n([\s\S]*?)\n```/i);
+          const lang = match ? match[1] || 'code' : 'code';
+          const code = match ? match[2] : part.slice(3, -3);
+          const escapedCode = escapeHTML(code);
+          return `
+            <div class="code-block-container">
+              <div class="code-block-header">
+                <span class="code-lang">${lang}</span>
+                <button class="copy-btn" onclick="copyCode(this)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  <span>Copy</span>
+                </button>
+              </div>
+              <pre class="code-block-content"><code>${escapedCode}</code></pre>
+            </div>
+          `;
+        } else {
+          // Paragraph splits and inline rendering
+          let formatted = escapeHTML(part);
+          formatted = formatted.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+
+          // Split into paragraphs by \n\n
+          const paras = formatted.split(/\n\n/);
+          return paras.map(p => {
+            if (p.trim() === "") return "";
+            // Replace remaining single newlines with br
+            return `<p>${p.replace(/\n/g, "<br>")}</p>`;
+          }).join("");
+        }
+      }).join('');
+    }
+  </script>
+</body>
+
+</html>

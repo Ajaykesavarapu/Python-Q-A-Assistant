@@ -1,0 +1,6 @@
+{
+  "name": "Python Programming Q&A Assistant",
+  "description": "An AI-powered Q&A Assistant using RAG and agentic flows to provide grounded answers to Python programming questions.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

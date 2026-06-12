@@ -1,0 +1,463 @@
+--- USER INPUT ---
+<USER_REQUEST>
+The application is already built. Now complete the following three remaining
+deliverables exactly as specified in the Analytics Vidhya AI Engineer assessment document.
+Do not modify any existing code. Only add the files listed below.
+
+════════════════════════════════════════════════════
+DELIVERABLE 1 — TEST RESULTS (MANDATORY)
+File: notebooks/test_results.ipynb
+Also create: test_results.py (plain Python version for CI)
+════════════════════════════════════════════════════
+
+Run the live application against exactly these 8 diverse Python-related
+queries. For each query call POST /ask on the running FastAPI server
+(default http://localhost:8000/ask) and capture the full response.
+
+QUERY LIST (run all 8 in order):
+Q1: "How do I read a CSV file using pandas?"
+Q2: "What is the difference between a list and a tuple in Python?"
+Q3: "How do I handle exceptions in Python with try/except?"
+Q4: "How to merge two dictionaries in Python 3?"
+Q5: "What is a lambda function and when should I use it?"
+Q6: "How do I filter a list using list comprehensions with conditions?"
+Q7: "How to connect to a SQLite database and execute queries in Python?"
+Q8: "What is the GIL in Python and how does it affect multithreading?"
+
+FOR EACH QUERY DOCUMENT ALL OF THE FOLLOWING:
+- The exact question text
+- The full answer returned by the system
+- The sources list (title, relevance score, snippet for each)
+- Whether sources were found: Yes / No
+- Processing time in milliseconds
+- is_off_topic value (must be false for all 8)
+- PASS or FAIL — PASS if answer is not null AND sources not empty
+  AND is_off_topic is false AND answer length > 50 chars
+
+OBSERVATION NOTES PER QUERY (write a honest human-readable note
+of 2-5 sentences per query covering):
+  - Is the answer grounded in the retrieved Stack Overflow context?
+  - Is the answer accurate and complete for the question asked?
+  - Are code examples present where expected?
+  - Any hallucination, missing info, or irrelevant sources noticed?
+  - Overall quality rating: Excellent / Good / Fair / Poor
+
+ALSO RUN THESE 3 EDGE CASE / FAILURE QUERIES AND DOCUMENT THEM:
+
+E1: "" (empty string) — expect HTTP 422 validation error
+    Note: Does the API return a proper validation error message?
+
+E2: "What is the capital of France?" (off-topic, not Python)
+    Note: Does is_off_topic return true? Is the off_topic_message present?
+    Does the system correctly refuse to answer from dataset?
+
+E3: "xyzqwertyabcdef1234 python" (nonsense query)
+    Note: Does the system return a graceful "not found in dataset" message?
+    Does it hallucinate an answer or correctly say it cannot find one?
+
+NOTEBOOK STRUCTURE (notebooks/test_results.ipynb):
+
+Cell 1 — Markdown: "# Python Q&A Assistant — Test Results"
+  "Analytics Vidhya AI Engineer Assessment — Round 1"
+  "Date: <today's date>"
+  "Tester: <your name>"
+
+Cell 2 — Setup: import requests, pandas, json, time. Set BASE_URL.
+
+Cell 3 — Define helper function run_query(question) that calls POST /ask,
+  measures response time, returns full parsed response dict.
+
+Cells 4–11 — One cell per query (Q1 through Q8):
+  - Run the query
+  - Print formatted output: Question / Answer / Sources / Time / Pass-Fail
+  - Markdown cell immediately after each with the observation notes
+
+Cells 12–14 — Edge case tests E1, E2, E3 (one cell each)
+
+Cell 15 — Summary DataFrame:
+  Create a pandas DataFrame with columns:
+  Query | Question (truncated to 60 chars) | Pass/Fail | Sources Found |
+  Time (ms) | Quality Rating
+  Display the DataFrame.
+  Print overall: X/8 queries passed, average response time, any failures.
+
+Cell 16 — Markdown: "## Overall Observations and Failure Analysis"
+  Write a paragraph covering:
+  - Which queries performed best and why
+  - Which queries had issues (missing context, poor sources, etc.)
+  - Any consistent failure patterns observed
+  - Edge cases and how the system handled them
+  - Recommendations for improvement
+
+Cell 17 — Markdown: "## Conclusion"
+  One paragraph summarizing overall system quality.
+
+════════════════════════════════════════════════════
+DELIVERABLE 2 — SLIDE DECK (MANDATORY, MAX 10 SLIDES)
+File: slides/presentation.html
+(Single self-contained HTML file, no external dependencies except
+Google Fonts. Must render perfectly in any modern browser offline.)
+════════════════════════════════════════════════════
+
+Build a fully styled, professional slide deck as a single HTML file
+with keyboard navigation (left/right arrow keys) and prev/next buttons.
+Show slide number (e.g. "3 / 10") in the corner of every slide.
+
+SLIDE 1 — TITLE SLIDE
+  Title: "Python Q&A Assistant"
+  Subtitle: "AI Engineer Assessment — Analytics Vidhya"
+  Line 3: "RAG Pipeline + LangGraph Agent + FastAPI"
+  Line 4: "Stack Overflow Dataset · <your name> · <date>"
+
+SLIDE 2 — PROBLEM STATEMENT
+  Heading: "Problem Statement"
+  Content:
+  - Data science learners need fast, accurate Python answers
+  - Generic LLMs hallucinate and lack grounded, citable responses
+  - Stack Overflow has millions of real, voted, proven answers
+  - Goal: Build a grounded Q&A system using real SO data
+  - Users can also query any external LLM for non-Python questions
+    using their own API key — no server-side key storage
+
+SLIDE 3 — SYSTEM ARCHITECTURE
+  Heading: "System Architecture"
+  Draw a clear ASCII-art or HTML/CSS architecture diagram showing:
+  User → Frontend (HTML/JS Chat UI)
+       → FastAPI Backend
+       → LangGraph Agent
+            ├── classify_question_node
+            ├── retrieve_context_node (ChromaDB)
+            ├── generate_answer_node (LLM + context only)
+            ├── no_context_node
+            └── off_topic_node → /ask/external → User's LLM API
+  Data flow: Kaggle CSV → Ingestion Script → ChromaDB Vector Store
+  Label every component clearly.
+
+SLIDE 4 — LANGGRAPH AGENT FLOW
+  Heading: "LangGraph Agent — Decision Flow"
+  Show the full graph as a visual flowchart:
+  START
+    ↓
+  classify_question (Python-related?)
+    ├── No → off_topic_node → END
+    └── Yes → retrieve_context (ChromaDB top-5)
+                ├── No docs found → no_context_node → END
+                └── Docs found → generate_answer (context only) → END
+  Note below: "Answers are NEVER generated without retrieval.
+  LLM is used only to synthesize from retrieved Stack Overflow context."
+
+SLIDE 5 — RAG PIPELINE DEEP DIVE
+  Heading: "RAG Pipeline — Ingestion to Answer"
+  Two columns:
+
+  Left — Offline Ingestion:
+  1. Load Questions.csv + Answers.csv (Kaggle)
+  2. Join Q&A pairs by Id/ParentId
+  3. Clean HTML with BeautifulSoup
+  4. Chunk with RecursiveCharacterTextSplitter
+     (chunk_size=1000, overlap=200)
+  5. Embed with text-embedding-3-small
+  6. Persist to ChromaDB
+
+  Right — Online Retrieval:
+  1. User question → embedding
+  2. Cosine similarity search → top-5 chunks
+  3. LangChain LCEL: retriever | format | prompt | LLM | parser
+  4. Prompt enforces: "answer ONLY from context"
+  5. Return answer + source metadata
+
+SLIDE 6 — TECH STACK
+  Heading: "Tech Stack & Justification"
+  Table with columns: Component | Technology | Why
+
+  Backend API      | FastAPI          | Async, Pydantic, auto docs
+  Agent Framework  | LangGraph        | Stateful graph, conditional edges
+  RAG Framework    | LangChain LCEL   | Composable, production-ready chains
+  Vector Store     | ChromaDB         | Local-first, easy to migrate to cloud
+  Embeddings       | text-embedding-3-small | Best cost/quality tradeoff
+  LLM              | GPT-4o-mini      | Fast, affordable, high quality
+  Multi-LLM        | OpenAI/Anthropic/Gemini/Groq/Mistral | User choice
+  Dataset          | Stack Overflow (Kaggle) | 580K+ real Python Q&As
+  Testing          | pytest + httpx   | Async API testing
+  Deployment       | Render / HF Spaces / Railway | Free tier available
+
+SLIDE 7 — API DESIGN
+  Heading: "REST API — Endpoints"
+  Show each endpoint as a card:
+
+  GET  /health        → system status, vector store health, doc count
+  POST /ask           → main Q&A endpoint (dataset-grounded answers)
+  POST /ask/external  → off-topic questions via user's own LLM API key
+  POST /ask/stream    → streaming response (SSE token-by-token)
+  GET  /stats         → vector store stats (doc count, size)
+  GET  /              → serves chat UI frontend
+  GET  /docs          → FastAPI auto-generated Swagger UI
+
+  Show example POST /ask request and response JSON bodies.
+
+SLIDE 8 — TEST RESULTS SUMMARY
+  Heading: "Test Results — 8 Query Evaluation"
+  Show a table:
+  # | Question (short) | Pass/Fail | Sources | Quality | Time(ms)
+  ----------------------------------------------------------------
+  Fill in the actual results from Deliverable 1 above.
+
+  Below the table add:
+  - Overall pass rate: X / 8
+  - Avg response time: X ms
+  - Edge cases tested: 3 (empty, off-topic, nonsense)
+  - Key finding: one sentence on biggest strength
+  - Key gap: one sentence on biggest weakness observed
+
+SLIDE 9 — SCALING FOR 100+ CONCURRENT USERS
+  Heading: "Scaling to 100+ Concurrent Users"
+  Cover ALL of these points (as required by the assessment):
+
+  LATENCY:
+  - Async FastAPI with uvicorn (4+ workers): handles I/O concurrency
+  - Average response time target: < 2 seconds per query
+  - Streaming endpoint reduces perceived latency to < 500ms first token
+
+  ASYNC CALLS:
+  - All LLM and ChromaDB calls are async (await)
+  - LangGraph uses ainvoke for non-blocking agent execution
+  - httpx AsyncClient for external LLM provider calls
+
+  DATABASE / VECTOR STORE:
+  - Migrate ChromaDB to pgvector (PostgreSQL) for production
+  - pgvector supports concurrent reads natively
+  - Connection pooling with asyncpg (pool_size=20)
+  - Index: IVFFlat or HNSW for sub-100ms retrieval at scale
+
+  CACHING:
+  - Redis cache layer: cache (question_embedding → answer) with TTL=1hr
+  - Identical questions served from cache in < 10ms
+  - Cache hit rate estimated 40-60% for common Python questions
+  - Use redis-py with async client
+
+  COST:
+  - text-embedding-3-small: $0.02 per 1M tokens
+  - GPT-4o-mini: $0.15 input / $0.60 output per 1M tokens
+  - Estimated cost per query: ~$0.0003 (with caching)
+  - At 100 req/s: ~$26/day — optimize with semantic caching
+
+  DEPLOYMENT:
+  - Docker + gunicorn + uvicorn workers
+  - Horizontal scaling: 3+ replicas behind a load balancer
+  - Kubernetes HPA (scale on CPU > 70%)
+  - CDN for static frontend assets
+
+SLIDE 10 — FUTURE IMPROVEMENTS & CONCLUSION
+  Heading: "Future Improvements & Conclusion"
+
+  Left column — Future Improvements:
+  - Hybrid search: BM25 + dense vectors (reciprocal rank fusion)
+  - Conversation memory: multi-turn context with LangGraph checkpointing
+  - User feedback loop: thumbs up/down to improve retrieval quality
+  - Fine-tune embedding model on SO Python data for better retrieval
+  - Auto-refresh: weekly dataset updates from Stack Exchange API
+  - Evaluation framework: integrate Ragas for automated RAG quality scoring
+  - Multi-agent: separate agents for debugging, explaining, code generation
+
+  Right column — Conclusion:
+  - Built a fully grounded, hallucination-resistant Python Q&A system
+  - Every answer traceable to a real Stack Overflow source
+  - LangGraph enables transparent, auditable reasoning steps
+  - Off-topic handling is graceful and privacy-safe (no key storage)
+  - Ready for production deployment on Render / HF Spaces / Railway
+
+SLIDE DECK TECHNICAL REQUIREMENTS:
+- Single HTML file, no external JS/CSS dependencies
+- Keyboard navigation: left/right arrow keys
+- Prev / Next buttons visible on every slide
+- Slide counter: "Slide N of 10" bottom right
+- Professional color scheme: dark navy header bar, white content area,
+  accent color #4F46E5 (indigo) for highlights
+- Font: system-ui or sans-serif (no Google Fonts CDN needed)
+- Slide transitions: simple fade or instant (no complex animations)
+- Each slide: 100vw x 100vh, content centered, no scrolling within slide
+- Code snippets styled with monospace font and light gray background
+- The file must open directly in a browser with python -m http.server
+  or by double-clicking — no build step required
+
+════════════════════════════════════════════════════
+DELIVERABLE 3 — DEPLOYMENT (BONUS, BUT DO IT)
+════════════════════════════════════════════════════
+
+Add deployment configs for all three platforms listed in the assessment.
+The app must be deployable from the existing repo with zero code changes.
+
+FILE: huggingface/README.md (Hugging Face Spaces config)
+---
+title: Python QA Assistant
+emoji: 🐍
+colorFrom: indigo
+colorTo: blue
+sdk: docker
+app_port: 8000
+pinned: false
+---
+# Python Q&A Assistant
+Steps:
+1. Fork this Space
+2. Add OPENAI_API_KEY in Space secrets
+3. The Dockerfile builds and starts the app automatically
+Live URL: https://huggingface.co/spaces/<username>/python-qa-assistant
+
+FILE: railway.json
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": { "builder": "DOCKERFILE" },
+  "deploy": {
+    "startCommand": "uvicorn app.main:app --host 0.0.0.0 --port $PORT",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
+  }
+}
+
+UPDATE README.md — add a "Deployment" section with exact steps for:
+
+Render:
+1. Connect GitHub repo to Render
+2. New Web Service → select repo
+3. Build: pip install -r requirements.txt
+4. Start: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+5. Add env var: OPENAI_API_KEY
+6. Deploy
+
+Hugging Face Spaces:
+1. Create new Space → Docker SDK
+2. Push repo to Space
+3. Add OPENAI_API_KEY in Settings → Secrets
+4. Space auto-builds from Dockerfile
+
+Railway:
+1. railway login
+2. railway init
+3. railway up
+4. railway variables set OPENAI_API_KEY=sk-...
+5. Live URL in dashboard
+
+Note in README: "For deployment, the chroma_db must be pre-built
+and committed to the repo (after running python scripts/ingest.py),
+OR use a cloud vector store like Pinecone or Qdrant for persistence
+across dyno restarts."
+
+════════════════════════════════════════════════════
+SUBMISSION CHECKLIST — VERIFY BEFORE FINISHING
+════════════════════════════════════════════════════
+
+GitHub Repository:
+[ ] Public repo
+[ ] Clean code, no debug prints, no hardcoded keys
+[ ] .env.example present with all variables
+[ ] README with setup instructions, API docs, deployment steps
+[ ] .gitignore includes .env, chroma_db/, data/raw/, __pycache__/
+
+Test Results:
+[ ] notebooks/test_results.ipynb present and fully executed
+[ ] All 8 test queries run with real responses (not mocked)
+[ ] All 3 edge cases (empty, off-topic, nonsense) tested
+[ ] Observations written for every query (honest, specific)
+[ ] Summary DataFrame with Pass/Fail, quality ratings, times
+[ ] Overall observations and failure analysis paragraph
+
+Slide Deck:
+[ ] slides/presentation.html present (single file, opens in browser)
+[ ] Exactly 10 slides, all content filled in
+[ ] Slide 8 uses ACTUAL test results from the notebook
+[ ] Slide 9 covers all 4 scaling dimensions: latency, async,
+    database, caching, cost — as required by the assessment doc
+[ ] Keyboard navigation and slide counter working
+
+Deployment (Bonus):
+[ ] render.yaml present and correct
+[ ] railway.json present and correct
+[ ] huggingface/README.md present with Space config header
+[ ] README deployment section has steps for all 3 platforms
+[ ] Live URL added to README (after actual deployment)
+
+════════════════════════════════════════════════════
+IMPORTANT NOTES
+════════════════════════════════════════════════════
+
+- The notebook must show REAL responses from the running app.
+  Do NOT mock the responses or write fake output.
+  Start the FastAPI server first, then run the notebook.
+
+- Slide 8 test results must match the notebook results exactly.
+  Copy the actual pass/fail, times, and quality ratings.
+
+- The slide deck observation notes must be honest.
+  If a query returned a poor answer, note it as Poor and explain why.
+  Recruiters look for self-awareness and technical honesty.
+
+- The assessment document says "document the questions, responses,
+  AND any failure cases or edge cases you observed."
+  The 3 edge case tests (E1, E2, E3) directly satisfy this requirement.
+  Do not skip them.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-12T03:40:42+05:30.
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from None to Gemini 3.5 Flash (Medium). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>
+--- USER INPUT ---
+<USER_REQUEST>
+proceed
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-12T03:56:52+05:30.
+</ADDITIONAL_METADATA>
+--- USER INPUT ---
+<USER_REQUEST>
+continue
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-12T09:07:53+05:30.
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from Gemini 3.5 Flash (Medium) to Claude Sonnet 4.6 (Thinking). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>
+--- USER INPUT ---
+<USER_REQUEST>
+give me the commands to run this
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-12T09:54:43+05:30.
+</ADDITIONAL_METADATA>
+--- USER INPUT ---
+<USER_REQUEST>
+commands to run in the ide and to download dependencies and i am getting this error 
+
+Fatal error in launcher: Unable to create process using '"c:\users\kesav\appdata\local\programs\python\python38\python.exe"  "C:\Users\kesav\AppData\Local\Programs\Python\Python38\Scripts\pip.exe" install requirements.txt': The system cannot find the file specified.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-12T10:10:48+05:30.
+</ADDITIONAL_METADATA>
+--- USER INPUT ---
+<USER_REQUEST>
+import chromadb
+
+client = chromadb.CloudClient(
+  api_key='ck-6uthjAvAxWT7p4m5sFKJPS5WjDsgrdxQhHjP5yfGUjAG',
+  tenant='42b4f98b-4a30-4074-88a3-973ecc46be27',
+  database='PythonQAAssistant'
+)
+
+give me the metadata to save in the chroma cloud 
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-12T10:33:58+05:30.
+</ADDITIONAL_METADATA>
+--- USER INPUT ---
+<USER_REQUEST>
+continue
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-12T11:19:56+05:30.
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from Claude Sonnet 4.6 (Thinking) to Gemini 3.5 Flash (High). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>

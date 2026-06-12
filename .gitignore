@@ -1,0 +1,40 @@
+# ── Node / Frontend ──────────────────────────────────────────────────
+node_modules/
+dist/
+build/
+coverage/
+.DS_Store
+*.log
+
+# ── Environment / Secrets ─────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+# Keep the example file so contributors know what variables to set
+!.env.example
+
+# ── Python ───────────────────────────────────────────────────────────
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# ── Vector Store / ChromaDB data (large binary, regenerate locally) ──
+python-qa-assistant/chroma_db/
+
+# ── Jupyter ──────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── IDE / OS ─────────────────────────────────────────────────────────
+.vscode/
+.idea/
+Thumbs.db
