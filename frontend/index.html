@@ -1784,9 +1784,11 @@
 
   <script>
     // System Constants & API Configuration
-    // In local dev (npm run dev on port 3000): talk to FastAPI on port 8000
-    // In production (FastAPI serves this file): use relative URLs
-    const BASE_URL = (window.location.port === "3000") ? "http://localhost:8000" : "";
+    // On localhost (dev): frontend runs on port 3000, FastAPI on port 8000
+    // On Render / any non-localhost domain: FastAPI serves this file directly → use relative URLs
+    const BASE_URL = window.location.hostname === "localhost"
+      ? "http://localhost:8000"
+      : "";
 
     // Default Models for LLM Providers
     const PROVIDER_DEFAULT_MODELS = {
