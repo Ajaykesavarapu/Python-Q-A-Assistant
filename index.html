@@ -1860,6 +1860,16 @@
       setupEventListeners();
     }
 
+    // Expose modal functions globally for inline onclick attributes
+    window.openLlmModal = function(question) {
+      currentOffTopicQuestion = question;
+      modalProvider.value = settingsProvider.value;
+      modalModel.value = settingsModel.value;
+      modalKey.value = settingsKey.value;
+      llmModal.classList.add("open");
+      appendLog("INFO", "Prompted configuration overlay for external LLM request.");
+    };
+
     if (document.readyState === "loading") {
       window.addEventListener("DOMContentLoaded", initializeApp);
     } else {
@@ -1875,12 +1885,6 @@
         document.documentElement.classList.remove("dark");
       }
     }
-
-    document.getElementById("theme-toggle").addEventListener("click", () => {
-      const isDark = document.documentElement.classList.toggle("dark");
-      localStorage.setItem("theme", isDark ? "dark" : "light");
-      appendLog("INFO", `Theme switched to ${isDark ? "dark" : "light"} mode.`);
-    });
 
     // Settings Drawer Logic
     function initSettings() {
@@ -1916,47 +1920,7 @@
       topProviderBadge.innerText = `Provider: ${provider}`;
     }
 
-    // Auto-fill model based on provider select change
-    settingsProvider.addEventListener("change", (e) => {
-      const prov = e.target.value;
-      if (PROVIDER_DEFAULT_MODELS[prov]) {
-        settingsModel.value = PROVIDER_DEFAULT_MODELS[prov];
-      }
-    });
-
-    modalProvider.addEventListener("change", (e) => {
-      const prov = e.target.value;
-      if (PROVIDER_DEFAULT_MODELS[prov]) {
-        modalModel.value = PROVIDER_DEFAULT_MODELS[prov];
-      }
-    });
-
-    // Toggle API key password field visibility
-    toggleSettingsKeyVisibility.addEventListener("click", () => {
-      const isPassword = settingsKey.type === "password";
-      settingsKey.type = isPassword ? "text" : "password";
-      toggleSettingsKeyVisibility.innerText = isPassword ? "Hide" : "Show";
-    });
-
-    settingsTemp.addEventListener("input", (e) => {
-      tempValLabel.innerText = Number(e.target.value).toFixed(1);
-    });
-
-    // Save settings handler
-    settingsSaveBtn.addEventListener("click", () => {
-      localStorage.setItem("settings_provider", settingsProvider.value);
-      localStorage.setItem("settings_model", settingsModel.value);
-      localStorage.setItem("settings_key", settingsKey.value);
-      localStorage.setItem("settings_top_k", settingsTopK.value);
-      localStorage.setItem("settings_temp", settingsTemp.value);
-
-      updateProviderBadge(settingsProvider.value);
-      updateKeyDotStatus();
-
-      closeDrawer();
-      appendLog("INFO", "Configuration settings updated in LocalStorage.");
-    });
-
+    // Helper functions for drawer/modal — defined here, wired in setupEventListeners
     function openDrawer() {
       settingsDrawer.classList.add("open");
     }
@@ -1965,43 +1929,9 @@
       settingsDrawer.classList.remove("open");
     }
 
-    settingsBtn.addEventListener("click", openDrawer);
-    settingsDrawerClose.addEventListener("click", closeDrawer);
-    settingsDrawer.addEventListener("click", (e) => {
-      if (e.target === settingsDrawer) closeDrawer();
-    });
-
-    // LLM Config Modal Logic
-    function openLlmModal(question) {
-      currentOffTopicQuestion = question;
-      // Pre-fill modal fields using current settings values
-      modalProvider.value = settingsProvider.value;
-      modalModel.value = settingsModel.value;
-      modalKey.value = settingsKey.value;
-      llmModal.classList.add("open");
-      appendLog("INFO", "Prompted configuration overlay for external LLM request.");
-    }
-
     function closeLlmModal() {
       llmModal.classList.remove("open");
     }
-
-    llmModalClose.addEventListener("click", closeLlmModal);
-    llmModalCancel.addEventListener("click", closeLlmModal);
-    llmModal.addEventListener("click", (e) => {
-      if (e.target === llmModal) closeLlmModal();
-    });
-
-    llmModalForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const question = currentOffTopicQuestion;
-      const provider = modalProvider.value;
-      const key = modalKey.value;
-      const model = modalModel.value;
-
-      closeLlmModal();
-      await handleAskExternal(question, provider, key, model);
-    });
 
     // Logging helper
     function initLogs() {
@@ -2138,58 +2068,121 @@
 
     // Event Listeners for UI interaction
     function setupEventListeners() {
-      // Input character count and resize
+      // ── Theme toggle ──────────────────────────────────────────────
+      const themeToggleBtn = document.getElementById("theme-toggle");
+      if (themeToggleBtn) {
+        themeToggleBtn.addEventListener("click", () => {
+          const isDark = document.documentElement.classList.toggle("dark");
+          localStorage.setItem("theme", isDark ? "dark" : "light");
+          appendLog("INFO", `Theme switched to ${isDark ? "dark" : "light"} mode.`);
+        });
+      }
+
+      // ── Settings provider / model auto-fill ───────────────────────
+      settingsProvider.addEventListener("change", (e) => {
+        const prov = e.target.value;
+        if (PROVIDER_DEFAULT_MODELS[prov]) {
+          settingsModel.value = PROVIDER_DEFAULT_MODELS[prov];
+        }
+      });
+
+      modalProvider.addEventListener("change", (e) => {
+        const prov = e.target.value;
+        if (PROVIDER_DEFAULT_MODELS[prov]) {
+          modalModel.value = PROVIDER_DEFAULT_MODELS[prov];
+        }
+      });
+
+      // ── API key visibility toggle ─────────────────────────────────
+      toggleSettingsKeyVisibility.addEventListener("click", () => {
+        const isPassword = settingsKey.type === "password";
+        settingsKey.type = isPassword ? "text" : "password";
+        toggleSettingsKeyVisibility.innerText = isPassword ? "Hide" : "Show";
+      });
+
+      // ── Temperature slider label ──────────────────────────────────
+      settingsTemp.addEventListener("input", (e) => {
+        tempValLabel.innerText = Number(e.target.value).toFixed(1);
+      });
+
+      // ── Save settings ─────────────────────────────────────────────
+      settingsSaveBtn.addEventListener("click", () => {
+        localStorage.setItem("settings_provider", settingsProvider.value);
+        localStorage.setItem("settings_model", settingsModel.value);
+        localStorage.setItem("settings_key", settingsKey.value);
+        localStorage.setItem("settings_top_k", settingsTopK.value);
+        localStorage.setItem("settings_temp", settingsTemp.value);
+        updateProviderBadge(settingsProvider.value);
+        updateKeyDotStatus();
+        closeDrawer();
+        appendLog("INFO", "Configuration settings updated in LocalStorage.");
+      });
+
+      // ── Settings drawer open/close ────────────────────────────────
+      settingsBtn.addEventListener("click", openDrawer);
+      settingsDrawerClose.addEventListener("click", closeDrawer);
+      settingsDrawer.addEventListener("click", (e) => {
+        if (e.target === settingsDrawer) closeDrawer();
+      });
+
+      // ── LLM Modal close ───────────────────────────────────────────
+      llmModalClose.addEventListener("click", closeLlmModal);
+      llmModalCancel.addEventListener("click", closeLlmModal);
+      llmModal.addEventListener("click", (e) => {
+        if (e.target === llmModal) closeLlmModal();
+      });
+
+      // ── LLM Modal form submit ─────────────────────────────────────
+      llmModalForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const question = currentOffTopicQuestion;
+        const provider = modalProvider.value;
+        const key = modalKey.value;
+        const model = modalModel.value;
+        closeLlmModal();
+        await handleAskExternal(question, provider, key, model);
+      });
+
+      // ── Chat input: character count + resize ──────────────────────
       chatInput.addEventListener("input", (e) => {
         const text = e.target.value;
         charCounter.innerText = `${text.length} characters`;
         charCounter.style.visibility = text.length > 100 ? "visible" : "hidden";
-
-        // Disable/enable send button
         askBtn.disabled = text.trim() === "";
-
-        // Auto height adjustment
         chatInput.style.height = "auto";
         chatInput.style.height = `${chatInput.scrollHeight}px`;
       });
 
-      // Submit input on enter
+      // ── Submit on Enter (no Shift) ────────────────────────────────
       chatInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
           const query = chatInput.value.trim();
-          if (query !== "") {
-            handleAskSubmit(query);
-          }
+          if (query !== "") handleAskSubmit(query);
         }
       });
 
+      // ── Ask button click ──────────────────────────────────────────
       askBtn.addEventListener("click", () => {
         const query = chatInput.value.trim();
-        if (query !== "") {
-          handleAskSubmit(query);
-        }
+        if (query !== "") handleAskSubmit(query);
       });
 
-      // Example clickable cards
+      // ── Example cards and preset chips ───────────────────────────
       document.querySelectorAll(".example-card, .preset-chip").forEach(el => {
         el.addEventListener("click", () => {
           const q = el.getAttribute("data-question");
-          if (q) {
-            handleAskSubmit(q);
-          }
+          if (q) handleAskSubmit(q);
         });
       });
 
-      // Quick sidebar chips click logic
+      // ── Quick sidebar chips ───────────────────────────────────────
       document.querySelectorAll(".prompt-chip").forEach(el => {
         el.addEventListener("click", () => {
-          // Remove active state from others
           document.querySelectorAll(".prompt-chip").forEach(c => c.classList.remove("active"));
           el.classList.add("active");
           const q = el.getAttribute("data-question");
-          if (q) {
-            handleAskSubmit(q);
-          }
+          if (q) handleAskSubmit(q);
         });
       });
     }
@@ -2601,10 +2594,9 @@
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    // Close options panel
+    // Close options panel — exposed globally for inline onclick
     window.cancelLlmRequest = function () {
-      appendLog("INFO", "External LLM request request cancelled by user.");
-      // Render clean message from assistant
+      appendLog("INFO", "External LLM request cancelled by user.");
       const cleanMsg = document.createElement("div");
       cleanMsg.className = "chat-message assistant";
       cleanMsg.innerHTML = `
@@ -2621,6 +2613,9 @@
       chatMessages.appendChild(cleanMsg);
       chatMessages.scrollTop = chatMessages.scrollHeight;
     };
+
+    // Also expose highlightSource globally for inline onclick in source chips
+    window.highlightSource = highlightSource;
 
     // Typing indicators
     function showTypingIndicator() {
