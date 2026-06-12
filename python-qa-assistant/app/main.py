@@ -1,10 +1,11 @@
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.exceptions import RequestValidationError
 from app.api.routes import router as api_router
 from app.utils.logger import logger
 from app.core.config import settings
+import os
 
 def create_app() -> FastAPI:
     """Builds and wires the primary FastAPI application routing stack."""
@@ -28,14 +29,34 @@ def create_app() -> FastAPI:
     # Register core API sub-router
     app.include_router(api_router, prefix="/api")
     
-    # Extra root redirection endpoints for accessibility
-    @app.get("/")
+    # Serve the premium self-contained frontend index.html at root
+    @app.get("/", response_class=HTMLResponse)
     def index():
-        return {
-            "message": "Welcome to the Python Programming Q&A Assistant API!",
-            "swagger_docs": "/docs",
-            "health_check": "/api/health"
-        }
+        possible_paths = [
+            os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "index.html")),  # relative to main.py
+            os.path.abspath(os.path.join(os.getcwd(), "..", "index.html")),                      # relative to CWD
+            os.path.abspath(os.path.join(os.getcwd(), "index.html")),                         # current directory
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        return f.read()
+                except Exception as e:
+                    logger.error(f"[!] Failed to read index.html at {path}: {e}")
+                    
+        return """
+        <html>
+            <head><title>Python Q&A Assistant</title></head>
+            <body style="font-family: sans-serif; padding: 40px; max-width: 600px; margin: auto;">
+                <h1>Python Q&A Assistant API</h1>
+                <p style="color: red;">Frontend index.html could not be found.</p>
+                <p>Interactive docs: <a href="/docs">/docs</a></p>
+                <p>Health check: <a href="/api/health">/api/health</a></p>
+            </body>
+        </html>
+        """
         
     # Exception Handler: Request Validation (422)
     @app.exception_handler(RequestValidationError)
