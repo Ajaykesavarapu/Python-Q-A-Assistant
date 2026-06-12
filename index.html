@@ -1849,14 +1849,22 @@
     const settingsTemp = document.getElementById("settings-temp");
     const tempValLabel = document.getElementById("temp-val");
 
-    // Initialize application
-    window.addEventListener("DOMContentLoaded", () => {
+    // Initialize application safely
+    function initializeApp() {
+      if (window.__app_initialized) return;
+      window.__app_initialized = true;
       initTheme();
       initSettings();
       initLogs();
       fetchTelemetry();
       setupEventListeners();
-    });
+    }
+
+    if (document.readyState === "loading") {
+      window.addEventListener("DOMContentLoaded", initializeApp);
+    } else {
+      initializeApp();
+    }
 
     // Dark Mode Theme Logic
     function initTheme() {
