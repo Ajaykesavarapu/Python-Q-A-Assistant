@@ -1,137 +1,162 @@
-# Python Q&A Assistant
+# 🐍 Python Q&A Assistant
 
-A production-grade, AI-powered Python programming assistant built with **RAG (Retrieval-Augmented Generation)** and a **LangGraph agentic pipeline**. Ask any Python question and get grounded, accurate answers backed by real Stack Overflow data — not hallucinated responses.
+> A production-grade, AI-powered assistant for Python programming questions — grounded in real Stack Overflow answers, not hallucinations.
 
----
-
-## What It Does
-
-The assistant classifies incoming questions, retrieves the most relevant Stack Overflow answers from a local vector store, and generates a grounded, code-rich response using your preferred LLM provider (Google Gemini or OpenAI). Off-topic questions are caught early and can be optionally routed to an external LLM.
-
-**Key features:**
-- 🔍 **Semantic search** over a curated Stack Overflow Python corpus (ChromaDB)
-- 🤖 **LangGraph agent** with classify → retrieve → generate node workflow
-- 🌐 **Multi-provider LLM support** — Google Gemini, OpenAI
-- 💬 **Streaming responses** via Server-Sent Events (`/api/ask/stream`)
-- 🖥️ **Premium web UI** — dark mode, source cards, live agent workflow visualizer, system logs panel
-- ⚙️ **Settings drawer** — configure provider, model, API key, temperature without touching code
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![LangGraph](https://img.shields.io/badge/LangGraph-Agentic_Pipeline-FF6B6B?style=flat)](https://github.com/langchain-ai/langgraph)
+[![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector_Store-orange?style=flat)](https://www.trychroma.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
-## Architecture
+## 📖 About the Project
+
+The **Python Q&A Assistant** is a full-stack intelligent question-answering system designed specifically for Python developers. It combines **Retrieval-Augmented Generation (RAG)** with a **LangGraph agentic pipeline** to deliver precise, code-rich answers backed by a curated Stack Overflow corpus — eliminating the hallucination problem common in vanilla LLM responses.
+
+When you ask a Python question, the system:
+1. **Classifies** the question to determine if it's Python-related
+2. **Retrieves** the most semantically similar Stack Overflow Q&A pairs from ChromaDB
+3. **Generates** a grounded, context-aware answer using your configured LLM provider
+4. **Streams** the response token-by-token back to the browser in real-time
+
+Off-topic questions are detected early and can optionally be routed to an external LLM with a one-click workflow.
+
+---
+
+## ✨ Features
+
+| Feature | Description |
+|---|---|
+| 🔍 **Semantic Search** | Embeds questions and retrieves top-k matches from a Stack Overflow Python corpus using ChromaDB |
+| 🤖 **LangGraph Agent** | Multi-node StateGraph: classify → retrieve → generate → fallback, with full step audit |
+| 🌐 **Multi-Provider LLM** | Plug in Google Gemini or OpenAI — switch providers without touching code |
+| ⚡ **Streaming Responses** | Server-Sent Events (SSE) stream tokens in real time for a ChatGPT-like experience |
+| 💻 **Premium Web UI** | Dark-mode interface with source cards, live agent workflow visualizer, and a system logs panel |
+| ⚙️ **Settings Drawer** | Configure LLM provider, model, API key, and temperature directly from the UI |
+| 🚫 **Off-topic Routing** | Non-Python questions are caught and optionally answered by an external LLM |
+| 📊 **Stats Endpoint** | Live corpus metadata — document count, vector store size |
+
+---
+
+## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                  Web Browser (UI)                   │
-│         index.html — Vanilla HTML/CSS/JS            │
-└────────────────────────┬────────────────────────────┘
-                         │  HTTP REST  (port 3000 dev / 8000 prod)
-                         ▼
-┌─────────────────────────────────────────────────────┐
-│            Express Dev Server (server.ts)           │
-│   Vite HMR + /api/health, /api/stats, /api/ask,     │
-│   /api/ask/external  →  Gemini / OpenAI direct      │
-└────────────────────────┬────────────────────────────┘
-                         │  proxied or standalone
-                         ▼
-┌─────────────────────────────────────────────────────┐
-│           FastAPI + Uvicorn  (port 8000)            │
-│              app/api/routes.py                      │
-└────────────────────────┬────────────────────────────┘
-                         │  ainvoke / astream
-                         ▼
-┌─────────────────────────────────────────────────────┐
-│           LangGraph Agent  (StateGraph)             │
-│                                                     │
-│  classify_question_node                             │
-│         │                                           │
-│    Python? ──Yes──▶ retrieve_context_node           │
-│         │                  │                        │
-│        No                  ▼                        │
-│         │         generate_answer_node              │
-│         ▼                  │                        │
-│   fallback_node            ▼                        │
-│         │               [END]                       │
-│         ▼                                           │
-│      [END]                                          │
-└─────────────────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────┐
-│         ChromaDB  Vector Store (local)             │
-│    Stack Overflow Python Q&A corpus                 │
-│    Embeddings: sentence-transformers / OpenAI       │
-└─────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                   Web Browser (UI)                       │
+│           Vanilla HTML / CSS / JavaScript                │
+│     Dark mode · Source cards · Agent workflow viz        │
+└───────────────────────────┬──────────────────────────────┘
+                            │  HTTP / SSE
+                            ▼
+┌──────────────────────────────────────────────────────────┐
+│          Express + Vite Dev Server  (port 3000)          │
+│   Hot Module Replacement in dev · Proxies /api/* to      │
+│   FastAPI in prod · Direct Gemini/OpenAI for /external   │
+└───────────────────────────┬──────────────────────────────┘
+                            │  REST proxy → FastAPI
+                            ▼
+┌──────────────────────────────────────────────────────────┐
+│            FastAPI + Uvicorn  (port 8000)                │
+│                  app/api/routes.py                       │
+│   /health  /ask  /ask/stream  /ask/external  /stats      │
+└───────────────────────────┬──────────────────────────────┘
+                            │  ainvoke / astream
+                            ▼
+┌──────────────────────────────────────────────────────────┐
+│              LangGraph Agent  (StateGraph)               │
+│                                                          │
+│   classify_question_node                                 │
+│          │                                               │
+│     Python? ──Yes──▶ retrieve_context_node               │
+│          │                   │                           │
+│         No                   ▼                           │
+│          │          generate_answer_node                 │
+│          ▼                   │                           │
+│    fallback_node             ▼                           │
+│          │                [END]                          │
+│          ▼                                               │
+│       [END]                                              │
+└───────────────────────────┬──────────────────────────────┘
+                            │  similarity search
+                            ▼
+┌──────────────────────────────────────────────────────────┐
+│              ChromaDB  Vector Store  (local)             │
+│         Stack Overflow Python Q&A corpus                 │
+│   Embeddings: sentence-transformers / OpenAI Ada         │
+└──────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 | Layer | Technology |
 |---|---|
-| **Frontend** | Vanilla HTML5, CSS3 (custom properties), JavaScript (ES2022) |
-| **Dev Server** | Node.js + Express + Vite (HMR in development) |
-| **Backend API** | Python 3.11, FastAPI, Uvicorn |
+| **Frontend** | Vanilla HTML5, CSS3 (custom properties + dark mode), JavaScript ES2022 |
+| **Dev Server** | Node.js 18+, Express, Vite (HMR in development) |
+| **Backend API** | Python 3.11+, FastAPI, Uvicorn (ASGI) |
 | **Agent Orchestration** | LangGraph `StateGraph`, LangChain LCEL |
-| **Vector Store** | ChromaDB (local, serverless) |
-| **Embeddings** | `sentence-transformers/all-MiniLM-L6-v2` or OpenAI `text-embedding-3-small` |
-| **LLM Providers** | Google Gemini (`gemini-*`), OpenAI (`gpt-4o-mini`, etc.) |
-| **HTTP Client** | `httpx` (async, for external LLM calls) |
-| **Data Source** | Stack Overflow Python Q&A (Kaggle dataset) |
+| **Vector Store** | ChromaDB (local, serverless, zero infrastructure) |
+| **Embeddings** | `sentence-transformers/all-MiniLM-L6-v2` (default) · OpenAI `text-embedding-3-small` (optional) |
+| **LLM Providers** | Google Gemini (`gemini-1.5-flash`, `gemini-pro`) · OpenAI (`gpt-4o`, `gpt-4o-mini`) |
+| **HTTP Client** | `httpx` (async, streaming-capable) |
+| **Data Source** | Stack Overflow Python Q&A (Kaggle public dataset) |
 
 ---
 
-## Repository Structure
+## 📂 Repository Structure
 
 ```
 Python-Q-A-Assistant/
-├── index.html                  # Main frontend entry point (served by Vite)
+├── index.html                    # Main frontend entry point (served by Vite)
 ├── frontend/
-│   └── index.html              # Mirror copy of the frontend
-├── server.ts                   # Express + Vite dev server
-├── package.json                # Node dependencies & dev scripts
-├── vite.config.ts              # Vite bundler config
-├── tsconfig.json               # TypeScript config
-├── .env.example                # Required environment variables template
+│   └── index.html                # Mirror of the frontend for production builds
+├── server.ts                     # Express + Vite dev server with API proxy
+├── package.json                  # Node.js dependencies & npm scripts
+├── vite.config.ts                # Vite bundler configuration
+├── tsconfig.json                 # TypeScript configuration
+├── .env.example                  # Environment variables template
 │
-└── python-qa-assistant/        # Python FastAPI backend
+└── python-qa-assistant/          # Python FastAPI backend
     ├── app/
-    │   ├── main.py             # FastAPI app factory + middleware
+    │   ├── main.py               # FastAPI app factory, CORS, middleware
     │   ├── api/
-    │   │   └── routes.py       # /health, /ask, /ask/external, /ask/stream, /stats
+    │   │   └── routes.py         # /health, /ask, /ask/stream, /ask/external, /stats
     │   ├── agent/
-    │   │   ├── graph.py        # LangGraph StateGraph definition
-    │   │   ├── nodes.py        # classify, retrieve, generate, fallback nodes
-    │   │   └── state.py        # AgentState TypedDict
+    │   │   ├── graph.py          # LangGraph StateGraph definition
+    │   │   ├── nodes.py          # classify, retrieve, generate, fallback nodes
+    │   │   └── state.py          # AgentState TypedDict
     │   ├── rag/
-    │   │   ├── pipeline.py     # LangChain LCEL RAG chain
-    │   │   ├── retriever.py    # ChromaDB retriever setup
-    │   │   └── embeddings.py   # Embedding model loader
+    │   │   ├── pipeline.py       # LangChain LCEL RAG chain
+    │   │   ├── retriever.py      # ChromaDB retriever setup
+    │   │   └── embeddings.py     # Embedding model loader
     │   ├── models/
-    │   │   └── schemas.py      # Pydantic request/response models
+    │   │   └── schemas.py        # Pydantic request/response schemas
     │   ├── core/
-    │   │   ├── config.py       # Settings (pydantic-settings)
-    │   │   └── llm.py          # LLM client factory
-    │   └── ingestion/          # Data ingestion pipeline
+    │   │   ├── config.py         # App settings (pydantic-settings)
+    │   │   └── llm.py            # LLM client factory (Gemini / OpenAI)
+    │   └── ingestion/            # Data ingestion pipeline
     ├── scripts/
-    │   ├── download_data.py    # Download Stack Overflow dataset
-    │   └── ingest.py           # Embed & index into ChromaDB
-    ├── requirements.txt
-    ├── docker-compose.yml
-    └── render.yaml             # Render.com deployment config
+    │   ├── download_data.py      # Download Stack Overflow dataset from Kaggle
+    │   └── ingest.py             # Embed documents and populate ChromaDB
+    ├── tests/                    # Pytest test suite
+    ├── notebooks/                # Evaluation notebooks & benchmark results
+    ├── requirements.txt          # Python dependencies
+    ├── docker-compose.yml        # Docker Compose for containerized deployment
+    └── render.yaml               # Render.com deployment configuration
 ```
 
 ---
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
 - **Python 3.11+**
 - **Node.js 18+**
 - An API key for **Google Gemini** or **OpenAI** (at least one required)
-- Kaggle credentials (optional — mock data is auto-generated if absent)
+- Kaggle credentials (optional — a mock dataset is auto-generated if absent)
 
 ---
 
@@ -149,24 +174,24 @@ cd Python-Q-A-Assistant
 ```bash
 cd python-qa-assistant
 
-# Create and activate virtual environment
+# Create and activate a virtual environment
 python -m venv .venv
-.venv\Scripts\activate       # Windows
-# source .venv/bin/activate  # macOS/Linux
+.venv\Scripts\activate        # Windows
+# source .venv/bin/activate   # macOS / Linux
 
-# Install dependencies
+# Install Python dependencies
 pip install -r requirements.txt
 
-# Configure environment variables
+# Copy and configure environment variables
 cp .env.example .env
-# Open .env and fill in your API keys
+# Edit .env and fill in your API keys
 ```
 
-**`.env` variables:**
+**`.env` configuration:**
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
 OPENAI_API_KEY=your_openai_api_key_here
-LLM_PROVIDER=google        # google | openai | anthropic
+LLM_PROVIDER=google             # google | openai
 LLM_MODEL=gemini-1.5-flash
 CHROMA_DB_PATH=./chroma_db
 EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
@@ -177,14 +202,14 @@ EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
 ### 3. Download & Index the Dataset
 
 ```bash
-# Download Stack Overflow Python Q&A corpus from Kaggle
+# Download Stack Overflow Python Q&A corpus (Kaggle)
 python scripts/download_data.py
 
-# Embed documents and populate ChromaDB
+# Embed documents and index them into ChromaDB
 python scripts/ingest.py
 ```
 
-> If Kaggle credentials are not configured, a mock dataset is generated automatically so you can still run and test the system.
+> **Note:** If Kaggle credentials are not configured, a mock dataset is generated automatically so you can still run and evaluate the full pipeline.
 
 ---
 
@@ -194,32 +219,29 @@ python scripts/ingest.py
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-The FastAPI server starts at `http://localhost:8000`.  
-Interactive API docs: `http://localhost:8000/docs`
+- FastAPI server: `http://localhost:8000`
+- Interactive API docs (Swagger UI): `http://localhost:8000/docs`
 
 ---
 
 ### 5. Set Up & Start the Frontend
 
 ```bash
-# From the project root (not python-qa-assistant/)
+# From the project root (Python-Q-A-Assistant/)
 cd ..
 
-# Install Node dependencies
 npm install
-
-# Start the Vite dev server
 npm run dev
 ```
 
-The web UI starts at **`http://localhost:3000`**.
+The web UI is served at **`http://localhost:3000`**.
 
 ---
 
-## API Reference
+## 📡 API Reference
 
 ### `GET /api/health`
-Returns system status and vector store connectivity.
+Returns server status and vector store connectivity.
 
 ```bash
 curl http://localhost:8000/api/health
@@ -257,24 +279,24 @@ curl -X POST http://localhost:8000/api/ask \
 ---
 
 ### `POST /api/ask/stream`
-Same as `/api/ask` but streams tokens in real-time via Server-Sent Events.
+Same as `/api/ask` but streams tokens in real-time via **Server-Sent Events (SSE)** — ideal for the live chat UI.
 
 ```bash
 curl -N -X POST http://localhost:8000/api/ask/stream \
   -H "Content-Type: application/json" \
-  -d '{"question": "What is the GIL?"}'
+  -d '{"question": "What is the GIL in Python?"}'
 ```
 
 ---
 
 ### `POST /api/ask/external`
-Route an off-topic question to an external LLM provider using a custom API key.
+Route a question to an external LLM provider (e.g. for off-topic queries) with a custom API key.
 
 ```bash
 curl -X POST http://localhost:8000/api/ask/external \
   -H "Content-Type: application/json" \
   -d '{
-    "question": "Explain neural networks",
+    "question": "Explain how neural networks work",
     "provider": "OpenAI",
     "model": "gpt-4o-mini",
     "api_key": "sk-..."
@@ -284,61 +306,77 @@ curl -X POST http://localhost:8000/api/ask/external \
 ---
 
 ### `GET /api/stats`
-Returns corpus metadata (document count, vector store size).
+Returns corpus metadata including indexed document count and vector store size.
 
 ---
 
-## Running Tests
+## 🧪 Running Tests
 
 ```bash
 cd python-qa-assistant
 pytest tests/ -v --cov=app
 ```
 
-Benchmark results for 8 diverse Python developer queries are in `notebooks/test_results.ipynb`.  
-Average response time: **250–600ms** per query.
+Benchmark results across 8 diverse Python developer queries are available in `notebooks/test_results.ipynb`.  
+Average response time: **250–600 ms** per query.
 
 ---
 
-## Docker
+## 🐳 Docker
 
-Run the full stack as a portable container:
+Run the full backend stack as a portable container:
 
 ```bash
 cd python-qa-assistant
 docker-compose up --build
 ```
 
-Maps the FastAPI server to port `8000` with volumes for `chroma_db/` and `data/` persistence.
+This maps FastAPI to port `8000` and mounts `chroma_db/` and `data/` as persistent volumes.
 
 ---
 
-## Deployment
+## ☁️ Deployment
 
 ### Render
-Deploy the backend using the included `render.yaml`:
-- Set `OPENAI_API_KEY` / `GEMINI_API_KEY` as environment secrets in the Render dashboard.
-- The service will auto-build from the `python-qa-assistant/` subdirectory.
+The project includes a `render.yaml` for zero-config deployment on [Render](https://render.com):
+
+1. Connect this GitHub repository in the Render dashboard.
+2. Add `OPENAI_API_KEY` and/or `GEMINI_API_KEY` as **Environment Secrets**.
+3. The service auto-builds from the `python-qa-assistant/` subdirectory.
+4. Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 
 ### Railway / Fly.io
 1. Connect the GitHub repository.
 2. Set the root directory to `python-qa-assistant/`.
-3. Set `PORT=8000` and add your API key secrets.
-4. Deploy.
+3. Add `PORT=8000` and your API key secrets.
+4. Deploy — no other configuration needed.
 
 ---
 
-## Scaling Considerations
+## 📈 Scaling Considerations
 
-| Concern | Approach |
+| Concern | Recommended Approach |
 |---|---|
-| **Concurrency** | Run multiple Uvicorn workers: `uvicorn app.main:app --workers 4` |
-| **Caching** | Add Redis (TTL 1h) to short-circuit repeat queries |
-| **Vector Store** | Migrate from local ChromaDB to Qdrant or `pgvector` for horizontal scale |
-| **Cost per query** | ~$0.002 (classify + embed + generate @ gpt-4o-mini rates) |
+| **Concurrency** | `uvicorn app.main:app --workers 4` for multi-process scaling |
+| **Response Caching** | Add Redis with TTL ~1h to short-circuit repeated identical queries |
+| **Vector Store** | Migrate from local ChromaDB → Qdrant Cloud or `pgvector` for horizontal scale |
+| **Embedding Speed** | Switch to OpenAI `text-embedding-3-small` for GPU-free, fast cloud embeddings |
+| **Estimated Cost** | ~$0.002 per query (classify + embed + generate at `gpt-4o-mini` rates) |
 
 ---
 
-## License
+## 🤝 Contributing
+
+Contributions are welcome! Please open an issue first to discuss what you'd like to change.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
 
 MIT — see [LICENSE](LICENSE) for details.
