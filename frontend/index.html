@@ -1427,9 +1427,8 @@
       <div class="app-title-group">
         <div class="app-title-row">
           <span class="app-title">Python Q&A Assistant</span>
-
-
-
+          <span class="badge health" id="top-health-badge"><span class="badge-dot"></span>Healthy · v1.0.0</span>
+          <span class="badge provider" id="top-provider-badge">Provider: Google Gemini</span>
         </div>
         <div class="app-subtitle">RAG · LangGraph Agent · Stack Overflow corpus</div>
       </div>
@@ -1785,7 +1784,8 @@
 
   <script>
     // System Constants & API Configuration
-    const BASE_URL = "";
+    // Points directly to the FastAPI backend (port 8000)
+    const BASE_URL = "http://localhost:8000";
 
     // Default Models for LLM Providers
     const PROVIDER_DEFAULT_MODELS = {
